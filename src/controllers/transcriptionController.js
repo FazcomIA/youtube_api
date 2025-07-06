@@ -18,9 +18,25 @@ const getTranscription = async (req, res) => {
     }
     
     console.log(`🔍 Obtendo transcrição do vídeo: ${videoUrl}`);
+    console.log(`📋 Parâmetros: idiomas=${JSON.stringify(languages)}, timestamps=${includeTimestamps}`);
+    console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
     
-    // Extrair o ID do vídeo da URL
-    const videoId = youtubeTranscriptApi.extractVideoId(videoUrl);
+    let videoId;
+    try {
+      // Extrair o ID do vídeo da URL
+      videoId = youtubeTranscriptApi.extractVideoId(videoUrl);
+      console.log(`🆔 Video ID extraído: ${videoId}`);
+    } catch (extractError) {
+      console.error('❌ Erro ao extrair ID do vídeo:', extractError.message);
+      return res.status(400).json({
+        success: false,
+        error: 'URL do vídeo inválida. Verifique se é uma URL válida do YouTube.',
+        video_id: '',
+        video_url: videoUrl,
+        transcript: includeTimestamps ? [] : '',
+        available_languages: []
+      });
+    }
     
     // Obter transcrição
     const transcriptResult = await youtubeTranscriptApi.getTranscript(videoId, {
@@ -30,17 +46,24 @@ const getTranscription = async (req, res) => {
     
     if (transcriptResult.success) {
       console.log(`✅ Transcrição obtida com sucesso (${transcriptResult.segments_count} segmentos)`);
+      res.json(transcriptResult);
     } else {
       console.log(`❌ Erro ao obter transcrição: ${transcriptResult.error}`);
+      // Retornar status 200 mas com success: false (conforme formato da API)
+      res.json(transcriptResult);
     }
     
-    res.json(transcriptResult);
-    
   } catch (erro) {
-    console.error('Erro ao processar requisição de transcrição:', erro);
+    console.error('❌ Erro crítico ao processar requisição de transcrição:', {
+      message: erro.message,
+      stack: erro.stack,
+      videoUrl: req.body.videoUrl,
+      environment: process.env.NODE_ENV
+    });
+    
     res.status(500).json({ 
       success: false,
-      error: 'Erro ao obter transcrição do vídeo',
+      error: 'Erro interno do servidor ao processar transcrição',
       video_id: '',
       video_url: req.body.videoUrl || '',
       transcript: req.body.includeTimestamps ? [] : '',

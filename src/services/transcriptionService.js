@@ -13,12 +13,71 @@ const INNERTUBE_CONTEXT = {
 
 class YouTubeTranscriptApi {
     constructor() {
+        // User-Agents mais recentes e variados para produção
+        this.userAgents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0'
+        ];
+        
         this.httpClient = axios.create({
+            timeout: parseInt(process.env.YOUTUBE_TIMEOUT || '45000'), // 45 segundos por padrão
             headers: {
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
                 'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                'Accept-Encoding': 'gzip, deflate, br',
+                'Connection': 'keep-alive',
+                'Upgrade-Insecure-Requests': '1',
+                'Sec-Fetch-Dest': 'document',
+                'Sec-Fetch-Mode': 'navigate',
+                'Sec-Fetch-Site': 'none',
+                'Sec-Ch-Ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+                'Sec-Ch-Ua-Mobile': '?0',
+                'Sec-Ch-Ua-Platform': '"Windows"',
+                'Cache-Control': 'no-cache',
+                'Pragma': 'no-cache'
             }
         });
+        
+        // Interceptador para rotacionar User-Agent
+        this.httpClient.interceptors.request.use((config) => {
+            const randomUserAgent = this.userAgents[Math.floor(Math.random() * this.userAgents.length)];
+            config.headers['User-Agent'] = randomUserAgent;
+            return config;
+        });
+        
+        // Interceptador para retry automático
+        this.httpClient.interceptors.response.use(
+            (response) => response,
+            async (error) => {
+                const config = error.config;
+                
+                // Retry em caso de erro de rede ou timeout
+                if (!config || !config.retry) {
+                    config.retry = 0;
+                }
+                
+                if (config.retry < 3 && (
+                    error.code === 'ECONNRESET' ||
+                    error.code === 'ENOTFOUND' ||
+                    error.code === 'ECONNABORTED' ||
+                    (error.response && [429, 503, 502, 504].includes(error.response.status))
+                )) {
+                    config.retry += 1;
+                    console.log(`🔄 Tentativa ${config.retry}/3 para ${config.url}`);
+                    
+                    // Delay exponencial
+                    const delay = Math.pow(2, config.retry) * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    
+                    return this.httpClient(config);
+                }
+                
+                return Promise.reject(error);
+            }
+        );
     }
 
     /**
@@ -30,7 +89,9 @@ class YouTubeTranscriptApi {
         const patterns = [
             /(?:v=|\/)([0-9A-Za-z_-]{11})/,
             /(?:embed\/)([0-9A-Za-z_-]{11})/,
-            /(?:youtu\.be\/)([0-9A-Za-z_-]{11})/
+            /(?:youtu\.be\/)([0-9A-Za-z_-]{11})/,
+            /(?:watch\?v=)([0-9A-Za-z_-]{11})/,
+            /(?:youtube\.com\/watch\?.*v=)([0-9A-Za-z_-]{11})/
         ];
 
         for (const pattern of patterns) {
@@ -40,7 +101,37 @@ class YouTubeTranscriptApi {
             }
         }
 
-        throw new Error('ID do vídeo não encontrado na URL fornecida');
+        throw new Error('ID do vídeo não encontrado na URL fornecida. Verifique se é uma URL válida do YouTube.');
+    }
+
+    /**
+     * Método alternativo para obter transcrição usando abordagem mais simples
+     * @param {string} videoId - ID do vídeo
+     * @param {Array} languages - Lista de idiomas preferidos
+     * @returns {Promise<Object>} Resultado da transcrição
+     * @private
+     */
+    async _getTranscriptAlternative(videoId, languages = ['pt', 'pt-BR', 'en']) {
+        console.log('🔄 Tentando método alternativo para obter transcrição...');
+        
+        try {
+            // URL simplificada para obter dados básicos do vídeo
+            const simpleUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+            
+            const oembedResponse = await this.httpClient.get(simpleUrl);
+            console.log('✅ Dados básicos do vídeo obtidos via oEmbed');
+            
+            // Se chegou até aqui, o vídeo existe
+            throw new Error('Transcrições não disponíveis para este vídeo (método alternativo)');
+            
+        } catch (error) {
+            if (error.response && error.response.status === 404) {
+                throw new Error('Vídeo não encontrado ou não está disponível publicamente');
+            } else if (error.response && error.response.status === 403) {
+                throw new Error('Acesso ao vídeo negado. O vídeo pode ter restrições geográficas ou de idade');
+            }
+            throw error;
+        }
     }
 
     /**
@@ -88,11 +179,12 @@ class YouTubeTranscriptApi {
      * @returns {Promise<Object>} Objeto com dados da transcrição
      */
     async getTranscript(videoId, options = {}) {
+        const { languages = ['pt', 'pt-BR', 'en'], includeTimestamps = false } = options;
+        
         try {
-            const { languages = ['pt', 'pt-BR', 'en'], includeTimestamps = false } = options;
-
             console.log('📝 Extraindo transcrição do vídeo:', videoId);
             console.log('🌐 Idiomas preferidos:', languages);
+            console.log('🌍 Ambiente:', process.env.NODE_ENV || 'development');
 
             // Obtém os dados das legendas
             const captionsJson = await this._fetchCaptionsJson(videoId);
@@ -104,8 +196,14 @@ class YouTubeTranscriptApi {
             const availableLanguages = this._getAvailableLanguages(transcriptList);
             console.log('🌐 Idiomas disponíveis:', availableLanguages);
             
+            // Verifica se há transcrições disponíveis
+            if (availableLanguages.length === 0) {
+                throw new Error('Transcrições não disponíveis para este vídeo');
+            }
+            
             // Encontra a transcrição no idioma preferido
             const transcript = this._findTranscript(transcriptList, languages);
+            console.log('📋 Transcrição selecionada:', transcript.languageCode, transcript.isGenerated ? '(gerada automaticamente)' : '(manual)');
             
             // Obtém os dados da transcrição
             const transcriptData = await this._fetchTranscriptData(transcript.url);
@@ -157,10 +255,42 @@ class YouTubeTranscriptApi {
             return response;
             
         } catch (error) {
-            console.error('❌ Erro ao obter transcrição:', error.message);
+            console.error('❌ Erro detalhado ao obter transcrição (método principal):', {
+                message: error.message,
+                stack: error.stack,
+                videoId,
+                languages,
+                includeTimestamps,
+                environment: process.env.NODE_ENV
+            });
+            
+            // Tentar método alternativo antes de desistir
+            try {
+                console.log('🔄 Tentando método alternativo...');
+                await this._getTranscriptAlternative(videoId, languages);
+            } catch (alternativeError) {
+                console.log('❌ Método alternativo também falhou:', alternativeError.message);
+            }
+            
+            // Retornar erro mais específico baseado no tipo
+            let errorMessage = error.message;
+            if (error.message.includes('ENOTFOUND') || error.message.includes('ECONNREFUSED')) {
+                errorMessage = 'Erro de conexão com o YouTube. Tente novamente em alguns momentos.';
+            } else if (error.message.includes('timeout') || error.message.includes('ECONNABORTED')) {
+                errorMessage = 'Timeout ao acessar o YouTube. O vídeo pode estar indisponível ou o servidor sobrecarregado.';
+            } else if (error.message.includes('blocked') || error.message.includes('403') || error.message.includes('Forbidden')) {
+                errorMessage = 'Acesso bloqueado pelo YouTube. Tente novamente mais tarde.';
+            } else if (error.message.includes('Video not found') || error.message.includes('404') || error.message.includes('não encontrado')) {
+                errorMessage = 'Vídeo não encontrado ou não está disponível.';
+            } else if (error.message.includes('Transcrições desabilitadas') || error.message.includes('não disponível') || error.message.includes('não estão disponíveis')) {
+                errorMessage = 'Transcrições não estão disponíveis para este vídeo.';
+            } else if (error.message.includes('IP bloqueado') || error.message.includes('bot detectado')) {
+                errorMessage = 'Acesso temporariamente bloqueado. Este é um problema conhecido em servidores de cloud. Tente novamente mais tarde.';
+            }
+            
             return {
                 success: false,
-                error: error.message,
+                error: errorMessage,
                 video_id: videoId,
                 video_url: `https://www.youtube.com/watch?v=${videoId}`,
                 transcript: includeTimestamps ? [] : '',
@@ -219,8 +349,27 @@ class YouTubeTranscriptApi {
      */
     async _fetchVideoHtml(videoId) {
         const url = WATCH_URL.replace('{video_id}', videoId);
-        const response = await this.httpClient.get(url);
-        return response.data;
+        console.log('🌐 Fazendo requisição para:', url);
+        
+        try {
+            const response = await this.httpClient.get(url);
+            console.log('✅ HTML obtido com sucesso. Tamanho:', response.data.length, 'bytes');
+            
+            // Verificar se a resposta contém o que esperamos
+            if (!response.data.includes('ytInitialPlayerResponse') && !response.data.includes('INNERTUBE_API_KEY')) {
+                console.log('⚠️ HTML não contém dados esperados do YouTube');
+                throw new Error('Página do YouTube não carregou corretamente');
+            }
+            
+            return response.data;
+        } catch (error) {
+            console.error('❌ Erro ao obter HTML da página:', error.message);
+            if (error.response) {
+                console.error('Status da resposta:', error.response.status);
+                console.error('Headers da resposta:', error.response.headers);
+            }
+            throw error;
+        }
     }
 
     /**

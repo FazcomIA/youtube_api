@@ -174,6 +174,7 @@ PORT=3000
 BASE_URL=https://seu-dominio.com  # (auto-detectado na maioria dos casos)
 LOG_LEVEL=info
 API_TIMEOUT=30000
+YOUTUBE_TIMEOUT=45000  # Timeout específico para requisições ao YouTube (em ms)
 YOUTUBE_MAX_RESULTS=50
 YOUTUBE_DEFAULT_LANGUAGE=pt
 CORS_ORIGINS=https://meusite.com,https://localhost:3000  # (para desenvolvimento)
@@ -314,6 +315,53 @@ curl -X GET http://localhost:3000/health
 - Dependente da estrutura HTML do YouTube (pode quebrar com mudanças)
 - Rate limiting do YouTube pode afetar requisições em massa
 - Algumas informações podem não estar disponíveis para todos os vídeos
+
+## 🛠️ Troubleshooting
+
+### Problemas Comuns em Produção
+
+#### Transcrições não funcionam no servidor (mas funcionam localmente)
+**Causa:** YouTube pode bloquear IPs de datacenters/cloud providers.
+
+**Soluções:**
+1. **Configurar timeout maior:**
+   ```bash
+   YOUTUBE_TIMEOUT=60000  # 60 segundos
+   ```
+
+2. **Verificar logs detalhados:**
+   - Acesse os logs da aplicação no seu provedor
+   - Procure por mensagens como "IP bloqueado" ou "timeout"
+
+3. **Problemas conhecidos por ambiente:**
+   - **EasyPanel/VPS:** IPs podem estar em blacklist do YouTube
+   - **Heroku/Railway:** Rate limiting mais agressivo
+   - **Vercel/Netlify:** Timeouts em functions
+
+#### Erro 500 em endpoints específicos
+**Diagnóstico:**
+```bash
+# Testar health check
+curl https://sua-api.com/health
+
+# Testar endpoint específico
+curl -X POST https://sua-api.com/api/transcription \
+  -H "Content-Type: application/json" \
+  -d '{"videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID"}'
+```
+
+#### CORS ainda não funciona
+**Verificar configuração:**
+1. Confirme que `NODE_ENV=production` está definido
+2. Verifique se a URL do Swagger está correta no navegador
+3. Teste endpoints diretamente via cURL primeiro
+
+### Alternativas para Transcrições
+
+Se o serviço de transcrição não funcionar em produção:
+1. **Use a API local** para desenvolvimento/testes
+2. **Configure proxy** através de serviço intermediário
+3. **Use serviços alternativos** como OpenAI Whisper API
 
 ## 🔧 Desenvolvimento
 

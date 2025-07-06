@@ -161,6 +161,30 @@ services:
 - `axios` & `cheerio` - Scraping e requisições
 - `youtube-sr` & `youtubei` - Bibliotecas auxiliares YouTube
 
+## 🌍 Variáveis de Ambiente
+
+Para configurar a aplicação em produção, defina as seguintes variáveis de ambiente:
+
+```bash
+# Obrigatórias
+NODE_ENV=production
+PORT=3000
+BASE_URL=https://seu-dominio.com
+
+# Opcionais
+LOG_LEVEL=info
+API_TIMEOUT=30000
+YOUTUBE_MAX_RESULTS=50
+YOUTUBE_DEFAULT_LANGUAGE=pt
+CORS_ORIGINS=https://seu-dominio.com,https://localhost:3000
+RATE_LIMIT_MAX=100
+```
+
+**Importante para EasyPanel/Produção:**
+- `NODE_ENV=production` - Define o ambiente como produção
+- `BASE_URL=https://apps-api-youtube.x5k7lc.easypa.com` - URL completa da sua aplicação
+- `CORS_ORIGINS` - Domínios permitidos para CORS (opcional)
+
 ## 💻 Uso
 
 ### Iniciar a API:

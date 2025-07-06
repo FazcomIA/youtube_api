@@ -9,9 +9,55 @@ const routes = require('./src/routes');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Detectar ambiente e configurar URL base
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const BASE_URL = process.env.BASE_URL || 
+  (NODE_ENV === 'production' ? 'https://apps-api-youtube.x5k7lc.easypa.com' : `http://localhost:${PORT}`);
+
+// Configuração de CORS mais flexível
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Permitir requisições sem origin (ex: aplicações mobile, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    // Origens permitidas padrão
+    const defaultOrigins = [
+      'http://localhost:3000',
+      'https://localhost:3000',
+      BASE_URL,
+      /\.easypa\.com$/,
+      /localhost:\d+/
+    ];
+    
+    // Adicionar origens personalizadas das variáveis de ambiente
+    const customOrigins = process.env.CORS_ORIGINS ? 
+      process.env.CORS_ORIGINS.split(',').map(origin => origin.trim()) : [];
+    
+    const allowedOrigins = [...defaultOrigins, ...customOrigins];
+    
+    const isAllowed = allowedOrigins.some(pattern => {
+      if (typeof pattern === 'string') {
+        return origin === pattern;
+      }
+      return pattern.test(origin);
+    });
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.log(`CORS: Origem não permitida - ${origin}`);
+      // Em produção, permitir todas as origens por enquanto para compatibilidade
+      callback(null, NODE_ENV === 'production' ? true : false);
+    }
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin']
+};
+
 // Middleware
-app.use(express.json());
-app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(cors(corsOptions));
 
 // Configuração do Swagger
 const swaggerOptions = {
@@ -24,8 +70,8 @@ const swaggerOptions = {
     },
     servers: [
       {
-        url: `http://localhost:${PORT}`,
-        description: 'Servidor de desenvolvimento'
+        url: BASE_URL,
+        description: NODE_ENV === 'production' ? 'Servidor de produção' : 'Servidor de desenvolvimento'
       }
     ]
   },
@@ -201,8 +247,9 @@ app.use(routes);
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log('🚀 FCI - API Youtube v1 iniciada!');
-  console.log(`📡 Servidor rodando em http://localhost:${PORT}`);
-  console.log(`📚 Documentação Swagger disponível em http://localhost:${PORT}/api-docs`);
+  console.log(`📡 Servidor rodando em ${BASE_URL}`);
+  console.log(`📚 Documentação Swagger disponível em ${BASE_URL}/api-docs`);
+  console.log(`🌍 Ambiente: ${NODE_ENV}`);
   console.log('\n📋 Endpoints disponíveis:');
   console.log('  • POST /api/yt_search - Pesquisar vídeos no YouTube');
   console.log('  • POST /api/comments - Obter comentários de vídeos');

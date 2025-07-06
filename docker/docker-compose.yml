@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  # Aplicação principal
+  fci-api-youtube:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+      target: production
+    container_name: fci-api-youtube-app
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV:-production}
+      - PORT=3000
+      - HOST=0.0.0.0
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX:-100}
+      - API_TIMEOUT=${API_TIMEOUT:-30000}
+      - YOUTUBE_MAX_RESULTS=${YOUTUBE_MAX_RESULTS:-50}
+      - YOUTUBE_DEFAULT_LANGUAGE=${YOUTUBE_DEFAULT_LANGUAGE:-pt}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    volumes:
+      # Montar logs em volume para persistência
+      - fci-api-youtube-logs:/app/logs
+      # Montar timezone local
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - fci-api-youtube-network
+    healthcheck:
+      test: ["CMD", "node", "scripts/healthcheck.js"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+
+# Volumes persistentes
+volumes:
+  fci-api-youtube-logs:
+    driver: local
+
+# Rede personalizada
+networks:
+  fci-api-youtube-network:
+    driver: bridge 

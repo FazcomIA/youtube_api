@@ -1,4 +1,4 @@
-# YouTube API Unificada 🎬
+# FCI - API Youtube v1 🎬
 
 API RESTful unificada para extração de informações e comentários de vídeos do YouTube em Node.js.
 
@@ -20,10 +20,26 @@ API RESTful unificada para extração de informações e comentários de vídeos
 - Formato JSON personalizado com informações úteis
 
 ### ✅ Extração de Transcrição
-- Obter transcrição completa do vídeo no idioma principal
-- Texto sincronizado com timestamps
-- Informações sobre idioma e origem da transcrição
-- Suporte a transcrições manuais e geradas automaticamente
+- Obter transcrição completa do vídeo no idioma solicitado
+- Texto sincronizado com timestamps formatados (HH:MM:SS)
+- Informações sobre idioma usado e idiomas disponíveis
+- Suporte a transcrições manuais (priorizadas) e geradas automaticamente
+- Resposta flexível: texto corrido ou array de objetos com timestamps
+
+## 🛠️ Estrutura do Projeto
+
+```
+ytb_api/
+├── src/
+│   ├── controllers/          # Controllers para cada endpoint
+│   ├── routes/              # Definição das rotas
+│   └── services/            # Lógica de negócio
+├── docker/                  # Arquivos Docker
+├── scripts/                 # Scripts utilitários
+├── server.js               # Servidor principal
+├── package.json            # Dependências e scripts
+└── README.md              # Esta documentação
+```
 
 ## 📦 Instalação
 
@@ -36,6 +52,75 @@ npm start
 
 # Para desenvolvimento (com auto-reload)
 npm run dev
+```
+
+## 🐳 Docker
+
+### Build Local
+```bash
+# Construir imagem local
+npm run docker:build
+
+# Executar com Docker Compose
+npm run docker:compose
+
+# Parar containers
+npm run docker:compose:down
+```
+
+### 🌍 Build Multi-Arquitetura (Mac + Linux)
+
+Para criar uma imagem compatível com Mac (ARM64) e servidores Linux (AMD64):
+
+#### Método 1: Script Automatizado (Recomendado)
+```bash
+# Fazer build e push para Docker Hub
+./scripts/docker-build-push.sh SEU_USUARIO_DOCKERHUB
+
+# Exemplo:
+./scripts/docker-build-push.sh mateusgomes
+
+# Com versão específica:
+./scripts/docker-build-push.sh mateusgomes 1.0.0
+```
+
+#### Método 2: Comandos Manuais
+```bash
+# 1. Configurar buildx
+npm run docker:setup:buildx
+
+# 2. Login no Docker Hub
+docker login
+
+# 3. Build multi-arquitetura
+docker buildx build \
+  --platform linux/amd64,linux/arm64 \
+  -f docker/Dockerfile \
+  -t SEU_USUARIO/fci-api-youtube-v1:latest \
+  --push .
+```
+
+### 📦 Usar Imagem do Docker Hub
+
+#### No Mac (ARM64/Intel):
+```bash
+docker run -p 3000:3000 SEU_USUARIO/fci-api-youtube-v1:latest
+```
+
+#### No Servidor Linux (AMD64):
+```bash
+docker run -p 3000:3000 SEU_USUARIO/fci-api-youtube-v1:latest
+```
+
+#### Docker Compose com imagem do Hub:
+```yaml
+services:
+  fci-api-youtube:
+    image: SEU_USUARIO/fci-api-youtube-v1:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
 ```
 
 ## 🔧 Dependências
@@ -80,54 +165,6 @@ POST /api/yt_search
 }
 ```
 
-**Resposta:**
-```json
-[
-  {
-    "titulo": "JavaScript Tutorial Full Course - Beginner to Pro",
-    "url": "https://youtube.com/watch?v=EerdGm-ehJQ",
-    "dataPublicacao": "há 1 ano",
-    "nomeCanal": "SuperSimpleDev",
-    "handleCanal": "@SuperSimpleDev",
-    "visualizacoes": 5492959,
-    "duracao": 80157,
-    "thumbnail": "https://i.ytimg.com/vi/EerdGm-ehJQ/hq720.jpg",
-    "descricao": "Lessons: 00:00:00 Intro 00:02:01 1 JavaScript Basics..."
-  }
-]
-```
-
-### 🎬 Vídeo Mais Recente
-```
-POST /api/yt_last_video
-```
-
-**Parâmetros:**
-```json
-{
-  "channelHandle": "@RedCastOficial"
-}
-```
-
-**Resposta:**
-```json
-{
-  "videoId": "8JWEJKZ5Yrc",
-  "titulo": "TÍTULO DO VÍDEO",
-  "descricao": "Descrição do vídeo...",
-  "autor": "RedCast [Oficial]",
-  "channelId": "UCeL1a4rpEA8UG9IQIewPccg",
-  "url": "https://www.youtube.com/watch?v=8JWEJKZ5Yrc",
-  "thumbnail": "https://...",
-  "visualizacoes": 5214,
-  "likes": 0,
-  "duracao": 970,
-  "dataPublicacao": "há 2 dias",
-  "data": "25-12-2024",
-  "tags": ["tag1", "tag2"]
-}
-```
-
 ### 💬 Comentários
 ```
 POST /api/comments
@@ -143,18 +180,16 @@ POST /api/comments
 }
 ```
 
-**Resposta:**
+### 🎬 Vídeo Mais Recente
+```
+POST /api/yt_last_video
+```
+
+**Parâmetros:**
 ```json
-[
-  {
-    "cid": "UgxnT6K...",
-    "user": "Nome do usuário",
-    "text": "Texto do comentário",
-    "time": "há 2 dias",
-    "data": "15-05-2023",
-    "respostas": 3
-  }
-]
+{
+  "channelHandle": "@RedCastOficial"
+}
 ```
 
 ### 📝 Transcrição
@@ -165,48 +200,24 @@ POST /api/transcription
 **Parâmetros:**
 ```json
 {
-  "videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID"
+  "videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID",
+  "languages": ["pt", "pt-BR", "en"],
+  "includeTimestamps": false
 }
 ```
 
-**Resposta:**
-```json
-{
-  "language": "Português",
-  "language_code": "pt",
-  "is_generated": false,
-  "snippets": [
-    {
-      "text": "Texto do trecho da transcrição",
-      "start": 0.0,
-      "duration": 1.54
-    }
-  ]
-}
+### 🏥 Health Check
+```
+GET /health
 ```
 
-## 📝 Parâmetros Detalhados
-
-### Ordenação de Pesquisa de Vídeos:
-- `relevance` = Por relevância (padrão do YouTube)
-- `date` = Mais recentes primeiro
-- `views` = Mais visualizados primeiro
-
-### Ordenação de Comentários:
-- `0` = Mais populares
-- `1` = Mais recentes (padrão)
-
-### Códigos de Idioma (exemplos):
-- `pt` = Português
-- `en` = Inglês
-- `es` = Espanhol
-- `fr` = Francês
+Verifica se a API está funcionando corretamente.
 
 ## 📊 Exemplos de Uso
 
 ### JavaScript/Node.js
 ```javascript
-// Pesquisar vídeos por relevância (padrão)
+// Pesquisar vídeos
 const searchResponse = await fetch('http://localhost:3000/api/yt_search', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
@@ -214,88 +225,32 @@ const searchResponse = await fetch('http://localhost:3000/api/yt_search', {
 });
 const searchResults = await searchResponse.json();
 
-// Pesquisar vídeos mais recentes
-const recentResponse = await fetch('http://localhost:3000/api/yt_search', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ query: 'nodejs', limit: 3, order: 'date' })
-});
-const recentVideos = await recentResponse.json();
-
-// Obter vídeo mais recente
-const response = await fetch('http://localhost:3000/api/yt_last_video', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ channelHandle: '@RedCastOficial' })
-});
-const videoInfo = await response.json();
-
 // Obter comentários
 const commentsResponse = await fetch('http://localhost:3000/api/comments', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
-    videoIdOuUrl: 'https://www.youtube.com/watch?v=8JWEJKZ5Yrc',
+    videoIdOuUrl: 'https://www.youtube.com/watch?v=VIDEO_ID',
     limite: 10
   })
 });
 const comments = await commentsResponse.json();
-
-// Obter transcrição
-const transcriptionResponse = await fetch('http://localhost:3000/api/transcription', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({
-    videoUrl: 'https://www.youtube.com/watch?v=VIDEO_ID'
-  })
-});
-const transcription = await transcriptionResponse.json();
 ```
 
 ### cURL
 ```bash
-# Pesquisa de vídeos por relevância (padrão)
+# Pesquisa de vídeos
 curl -X POST http://localhost:3000/api/yt_search \
   -H "Content-Type: application/json" \
   -d '{"query": "javascript tutorial", "limit": 5}'
 
-# Pesquisa de vídeos mais recentes
-curl -X POST http://localhost:3000/api/yt_search \
-  -H "Content-Type: application/json" \
-  -d '{"query": "nodejs", "limit": 3, "order": "date"}'
-
-# Pesquisa de vídeos mais visualizados
-curl -X POST http://localhost:3000/api/yt_search \
-  -H "Content-Type: application/json" \
-  -d '{"query": "python", "limit": 5, "order": "views"}'
-
-# Vídeo mais recente
-curl -X POST http://localhost:3000/api/yt_last_video \
-  -H "Content-Type: application/json" \
-  -d '{"channelHandle": "@RedCastOficial"}'
-
 # Comentários
 curl -X POST http://localhost:3000/api/comments \
   -H "Content-Type: application/json" \
-  -d '{"videoIdOuUrl": "https://www.youtube.com/watch?v=8JWEJKZ5Yrc", "limite": 5}'
+  -d '{"videoIdOuUrl": "https://www.youtube.com/watch?v=VIDEO_ID", "limite": 5}'
 
-# Transcrição
-curl -X POST http://localhost:3000/api/transcription \
-  -H "Content-Type: application/json" \
-  -d '{"videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID"}'
-```
-
-## 🛠️ Estrutura do Projeto
-
-```
-ytb_api/
-├── server.js                      # Servidor principal da API
-├── index.js                       # Classe YouTubeExtractor
-├── api_comentarios.js             # Módulo de comentários
-├── youtube_comment_downloader.js  # Downloader de comentários
-├── package.json                   # Configurações e dependências
-├── README.md                      # Esta documentação
-└── .gitignore                    # Arquivos ignorados
+# Health check
+curl -X GET http://localhost:3000/health
 ```
 
 ## 🚨 Limitações
@@ -303,7 +258,6 @@ ytb_api/
 - Dependente da estrutura HTML do YouTube (pode quebrar com mudanças)
 - Rate limiting do YouTube pode afetar requisições em massa
 - Algumas informações podem não estar disponíveis para todos os vídeos
-- Comentários desabilitados retornarão array vazio
 
 ## 🔧 Desenvolvimento
 
@@ -314,17 +268,9 @@ npm install
 # Modo desenvolvimento
 npm run dev
 
-# Testar endpoints
-curl -X GET http://localhost:3000/
+# Health check
+npm run health
 ```
-
-## 🤝 Contribuindo
-
-1. Fork o projeto
-2. Crie uma branch para sua feature
-3. Commit suas mudanças
-4. Push para a branch
-5. Abra um Pull Request
 
 ## 📄 Licença
 

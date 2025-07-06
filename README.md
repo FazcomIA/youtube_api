@@ -2,6 +2,36 @@
 
 API RESTful unificada para extração de informações e comentários de vídeos do YouTube em Node.js.
 
+## 🔗 Links Importantes
+
+- **📦 Docker Hub:** [nexxusdigital/fci-api-youtube-v1](https://hub.docker.com/r/nexxusdigital/fci-api-youtube-v1)
+- **🐙 GitHub:** [FazcomIA/youtube_api](https://github.com/FazcomIA/youtube_api)
+
+## 🚀 Início Rápido
+
+### Usando Docker (Recomendado)
+```bash
+# Executar diretamente do Docker Hub
+docker run -p 3000:3000 nexxusdigital/fci-api-youtube-v1:latest
+
+# Ou com Docker Compose
+curl -O https://raw.githubusercontent.com/FazcomIA/youtube_api/master/docker/docker-compose.hub.yml
+docker-compose -f docker-compose.hub.yml up
+```
+
+### Desenvolvimento Local
+```bash
+# Clonar o repositório
+git clone https://github.com/FazcomIA/youtube_api.git
+cd youtube_api
+
+# Instalar dependências
+npm install
+
+# Executar
+npm start
+```
+
 ## 🚀 Funcionalidades
 
 ### ✅ Pesquisa de Vídeos no YouTube

@@ -166,24 +166,26 @@ services:
 Para configurar a aplicação em produção, defina as seguintes variáveis de ambiente:
 
 ```bash
-# Obrigatórias
+# Essencial para produção
 NODE_ENV=production
-PORT=3000
-BASE_URL=https://seu-dominio.com
 
-# Opcionais
+# Configurações opcionais
+PORT=3000
+BASE_URL=https://seu-dominio.com  # (auto-detectado na maioria dos casos)
 LOG_LEVEL=info
 API_TIMEOUT=30000
 YOUTUBE_MAX_RESULTS=50
 YOUTUBE_DEFAULT_LANGUAGE=pt
-CORS_ORIGINS=https://seu-dominio.com,https://localhost:3000
+CORS_ORIGINS=https://meusite.com,https://localhost:3000  # (para desenvolvimento)
 RATE_LIMIT_MAX=100
 ```
 
 **Importante para EasyPanel/Produção:**
 - `NODE_ENV=production` - Define o ambiente como produção
-- `BASE_URL=https://apps-api-youtube.x5k7lc.easypa.com` - URL completa da sua aplicação
-- `CORS_ORIGINS` - Domínios permitidos para CORS (opcional)
+- `BASE_URL` - (Opcional) URL completa da sua aplicação se não for detectada automaticamente
+- `CORS_ORIGINS` - (Opcional) Domínios específicos para CORS em desenvolvimento
+
+**Nota:** A aplicação detecta automaticamente a URL base através dos headers HTTP do EasyPanel/proxy reverso. Você só precisa definir `BASE_URL` se quiser forçar uma URL específica.
 
 ## 💻 Uso
 

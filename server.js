@@ -11,31 +11,34 @@ const PORT = process.env.PORT || 3000;
 
 // Detectar ambiente e configurar URL base
 const NODE_ENV = process.env.NODE_ENV || 'development';
-const BASE_URL = process.env.BASE_URL || 
-  (NODE_ENV === 'production' ? 'https://apps-api-youtube.x5k7lc.easypa.com' : `http://localhost:${PORT}`);
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
-// Configuração de CORS mais flexível
+// Configuração de CORS flexível
 const corsOptions = {
   origin: function (origin, callback) {
     // Permitir requisições sem origin (ex: aplicações mobile, Postman, etc.)
     if (!origin) return callback(null, true);
     
-    // Origens permitidas padrão
-    const defaultOrigins = [
-      'http://localhost:3000',
-      'https://localhost:3000',
-      BASE_URL,
-      /\.easypa\.com$/,
-      /localhost:\d+/
+    // Em produção, permitir todas as origens para máxima compatibilidade
+    if (NODE_ENV === 'production') {
+      return callback(null, true);
+    }
+    
+    // Em desenvolvimento, aplicar verificações mais rigorosas
+    const developmentOrigins = [
+      /^http:\/\/localhost:\d+$/,
+      /^https:\/\/localhost:\d+$/,
+      /^http:\/\/127\.0\.0\.1:\d+$/,
+      /^https:\/\/127\.0\.0\.1:\d+$/
     ];
     
     // Adicionar origens personalizadas das variáveis de ambiente
-    const customOrigins = process.env.CORS_ORIGINS ? 
-      process.env.CORS_ORIGINS.split(',').map(origin => origin.trim()) : [];
+    if (process.env.CORS_ORIGINS) {
+      const customOrigins = process.env.CORS_ORIGINS.split(',').map(origin => origin.trim());
+      developmentOrigins.push(...customOrigins);
+    }
     
-    const allowedOrigins = [...defaultOrigins, ...customOrigins];
-    
-    const isAllowed = allowedOrigins.some(pattern => {
+    const isAllowed = developmentOrigins.some(pattern => {
       if (typeof pattern === 'string') {
         return origin === pattern;
       }
@@ -45,9 +48,8 @@ const corsOptions = {
     if (isAllowed) {
       callback(null, true);
     } else {
-      console.log(`CORS: Origem não permitida - ${origin}`);
-      // Em produção, permitir todas as origens por enquanto para compatibilidade
-      callback(null, NODE_ENV === 'production' ? true : false);
+      console.log(`CORS: Origem não permitida em desenvolvimento - ${origin}`);
+      callback(null, false);
     }
   },
   credentials: true,
@@ -59,7 +61,18 @@ const corsOptions = {
 app.use(express.json({ limit: '10mb' }));
 app.use(cors(corsOptions));
 
-// Configuração do Swagger
+// Função para detectar URL base dinamicamente
+const getBaseUrl = (req) => {
+  if (process.env.BASE_URL) {
+    return process.env.BASE_URL;
+  }
+  
+  const protocol = req.get('x-forwarded-proto') || req.protocol || 'http';
+  const host = req.get('x-forwarded-host') || req.get('host') || `localhost:${PORT}`;
+  return `${protocol}://${host}`;
+};
+
+// Configuração do Swagger com detecção dinâmica
 const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
@@ -79,7 +92,29 @@ const swaggerOptions = {
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocs));
+
+// Middleware personalizado para Swagger com URL dinâmica
+app.use('/api-docs', (req, res, next) => {
+  const dynamicBaseUrl = getBaseUrl(req);
+  
+  // Atualizar as configurações do Swagger dinamicamente
+  const dynamicSwaggerOptions = {
+    ...swaggerOptions,
+    definition: {
+      ...swaggerOptions.definition,
+      servers: [
+        {
+          url: dynamicBaseUrl,
+          description: NODE_ENV === 'production' ? 'Servidor de produção' : 'Servidor de desenvolvimento'
+        }
+      ]
+    }
+  };
+  
+  const dynamicSwaggerDocs = swaggerJsDoc(dynamicSwaggerOptions);
+  req.swaggerDoc = dynamicSwaggerDocs;
+  next();
+}, swaggerUi.serve, swaggerUi.setup());
 
 // Rota inicial
 app.get('/', (req, res) => {

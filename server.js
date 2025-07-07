@@ -126,17 +126,12 @@ app.get('/', (req, res) => {
       comments: 'POST /api/comments',
       ytLastVideo: 'POST /api/yt_last_video',
       ytVideoInfo: 'POST /api/yt_video_info',
-      transcription: 'POST /api/transcription',
       health: 'GET /health'
     },
     features: {
-      externalTranscription: 'Transcrições via serviço externo (kome.ai)',
       videoSearch: 'Pesquisa avançada de vídeos no YouTube',
       commentExtraction: 'Extração de comentários com filtros',
       videoInfo: 'Informações detalhadas de vídeos e canais'
-    },
-    changelog: {
-      v1_2_0: 'Migração para API externa de transcrições - mais estável e compatível'
     }
   });
 });
@@ -269,32 +264,7 @@ app.use(routes);
  *         description: Erro interno do servidor
  */
 
-/**
- * @swagger
- * /api/transcription:
- *   post:
- *     summary: Obtém transcrição de um vídeo via serviço externo
- *     description: Utiliza serviço externo (kome.ai) para obter transcrições, garantindo compatibilidade em qualquer servidor
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - videoUrl
- *             properties:
- *               videoUrl:
- *                 type: string
- *                 description: URL do vídeo do YouTube
- *     responses:
- *       200:
- *         description: Transcrição do vídeo
- *       400:
- *         description: Erro na requisição
- *       500:
- *         description: Erro interno do servidor
- */
+
 
 /**
  * @swagger
@@ -318,12 +288,5 @@ app.listen(PORT, () => {
   console.log('  • POST /api/comments - Obter comentários de vídeos');
   console.log('  • POST /api/yt_last_video - Obter vídeo mais recente de um canal');
   console.log('  • POST /api/yt_video_info - Obter informações de vídeo específico');
-  console.log('  • POST /api/transcription - Obter transcrição de vídeos');
   console.log('  • GET /health - Verificar saúde da API');
-  
-  console.log('\n🔄 Sistema de Transcrição:');
-  console.log('  • Transcrições via serviço externo (kome.ai)');
-  console.log('  • Compatível com qualquer servidor');
-  console.log('  • Sem necessidade de configuração de cookies');
-  console.log('  • Mais estável e confiável');
 }); 

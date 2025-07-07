@@ -187,8 +187,6 @@ class YouTubeTranscriptApi {
                 error: '',
                 video_id: videoId,
                 video_url: videoUrl,
-                language_used: 'auto-detected', // kome.ai detecta automaticamente
-                available_languages: ['auto-detected'], // kome.ai não especifica idiomas
                 segments_count: segmentsCount,
                 include_timestamps: includeTimestamps,
                 transcript: processedTranscript,
@@ -233,7 +231,6 @@ class YouTubeTranscriptApi {
                 video_id: videoId,
                 video_url: videoUrl,
                 transcript: includeTimestamps ? [] : '',
-                available_languages: [],
                 service: 'kome.ai'
             };
         }

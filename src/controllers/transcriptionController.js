@@ -33,8 +33,7 @@ const getTranscription = async (req, res) => {
         error: 'URL do vídeo inválida. Verifique se é uma URL válida do YouTube.',
         video_id: '',
         video_url: videoUrl,
-        transcript: includeTimestamps ? [] : '',
-        available_languages: []
+        transcript: includeTimestamps ? [] : ''
       });
     }
     
@@ -67,7 +66,6 @@ const getTranscription = async (req, res) => {
       video_id: '',
       video_url: req.body.videoUrl || '',
       transcript: req.body.includeTimestamps ? [] : '',
-      available_languages: [],
       service: 'kome.ai'
     });
   }

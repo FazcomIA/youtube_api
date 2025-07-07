@@ -17,6 +17,7 @@
     "docker:push:hub": "./scripts/docker-build-push.sh",
     "docker:setup:buildx": "docker buildx create --name multiarch-builder --use",
     "health": "node scripts/healthcheck.js",
+    "fix-cookies": "node scripts/fix-cookies.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

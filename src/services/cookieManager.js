@@ -204,20 +204,25 @@ class CookieManager {
             const cookiesData = await fs.readFile(this.cookiesFile, 'utf8');
             const cookies = JSON.parse(cookiesData);
             
-            if (this.validateCookies(cookies)) {
+            if (this.validateCookies(cookies) && cookies.length > 0) {
                 console.log(`🍪 Cookies carregados: ${cookies.length} cookies encontrados`);
                 return cookies;
             } else {
-                console.warn('⚠️ Cookies inválidos encontrados, ignorando');
-                return [];
+                console.warn('⚠️ Cookies inválidos ou arquivo vazio, inicializando cookies padrão...');
+                await this.saveDefaultCookies();
+                return this.defaultCookies;
             }
         } catch (error) {
             if (error.code === 'ENOENT') {
-                console.log('📝 Nenhum arquivo de cookies encontrado');
+                console.log('📝 Nenhum arquivo de cookies encontrado, inicializando cookies padrão...');
+                await this.saveDefaultCookies();
+                return this.defaultCookies;
             } else {
                 console.error('❌ Erro ao carregar cookies:', error.message);
+                console.log('🔄 Tentando recuperar com cookies padrão...');
+                await this.saveDefaultCookies();
+                return this.defaultCookies;
             }
-            return [];
         }
     }
 

@@ -236,6 +236,53 @@ const getCookieStatus = async (req, res) => {
     }
 };
 
+/**
+ * Força a reinicialização do sistema de cookies (endpoint de emergência)
+ */
+const forceInitializeCookies = async (req, res) => {
+    try {
+        console.log('🚨 FORÇANDO REINICIALIZAÇÃO DO SISTEMA DE COOKIES...');
+        
+        // Forçar criação de nova instância do cookieManager
+        const newCookieManager = new (require('../services/cookieManager'))();
+        
+        // Forçar inicialização
+        await newCookieManager.ensureCookiesDir();
+        
+        // Verificar se há cookies
+        const hasCookies = await newCookieManager.hasCookies();
+        
+        if (!hasCookies) {
+            console.log('🔄 Nenhum cookie encontrado, criando cookies padrão...');
+            await newCookieManager.saveDefaultCookies();
+        }
+        
+        // Verificar status final
+        const finalInfo = await newCookieManager.getCookieInfo();
+        
+        res.json({
+            success: true,
+            message: 'Sistema de cookies reinicializado com sucesso',
+            data: {
+                action: 'force_initialize',
+                hasCookies: finalInfo.hasCookes,
+                count: finalInfo.count,
+                details: finalInfo
+            }
+        });
+        
+        console.log('✅ Reinicialização forçada concluída');
+        
+    } catch (error) {
+        console.error('❌ Erro na reinicialização forçada:', error.message);
+        res.status(500).json({
+            success: false,
+            error: 'Erro na reinicialização forçada do sistema de cookies',
+            message: error.message
+        });
+    }
+};
+
 module.exports = {
     uploadCookies,
     getCookieInfo,
@@ -243,5 +290,6 @@ module.exports = {
     checkCookies,
     getDefaultCookiesInfo,
     restoreDefaultCookies,
-    getCookieStatus
+    getCookieStatus,
+    forceInitializeCookies
 }; 

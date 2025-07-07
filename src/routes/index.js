@@ -14,7 +14,8 @@ const {
     checkCookies,
     getDefaultCookiesInfo,
     restoreDefaultCookies,
-    getCookieStatus
+    getCookieStatus,
+    forceInitializeCookies
 } = require('../controllers/cookieController');
 
 // Rotas da API existentes
@@ -35,5 +36,8 @@ router.get('/api/cookies/check', checkCookies);
 router.get('/api/cookies/defaults', getDefaultCookiesInfo);
 router.post('/api/cookies/restore', restoreDefaultCookies);
 router.get('/api/cookies/status', getCookieStatus);
+
+// Rota de emergência para forçar inicialização
+router.post('/api/cookies/force-init', forceInitializeCookies);
 
 module.exports = router; 

@@ -6,6 +6,9 @@ const swaggerUi = require('swagger-ui-express');
 // Importar rotas
 const routes = require('./src/routes');
 
+// Importar CookieManager para inicialização
+const CookieManager = require('./src/services/cookieManager');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -135,7 +138,8 @@ app.get('/', (req, res) => {
         delete: 'DELETE /api/cookies',
         defaults: 'GET /api/cookies/defaults',
         restore: 'POST /api/cookies/restore',
-        status: 'GET /api/cookies/status'
+        status: 'GET /api/cookies/status',
+        forceInit: 'POST /api/cookies/force-init'
       },
       health: 'GET /health'
     },
@@ -439,12 +443,44 @@ app.use(routes);
  *         description: Erro interno do servidor
  */
 
+/**
+ * @swagger
+ * /api/cookies/force-init:
+ *   post:
+ *     summary: Força reinicialização do sistema de cookies (emergência)
+ *     description: Endpoint de emergência para reinicializar o sistema de cookies quando há problemas
+ *     responses:
+ *       200:
+ *         description: Sistema reinicializado com sucesso
+ *       500:
+ *         description: Erro na reinicialização
+ */
+
 // Iniciar servidor
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log('🚀 FCI - API Youtube v1 iniciada!');
   console.log(`📡 Servidor rodando em ${BASE_URL}`);
   console.log(`📚 Documentação Swagger disponível em ${BASE_URL}/api-docs`);
   console.log(`🌍 Ambiente: ${NODE_ENV}`);
+  
+  // Garantir inicialização dos cookies padrão
+  try {
+    console.log('\n🔄 Inicializando sistema de cookies...');
+    const cookieManager = new CookieManager();
+    await cookieManager.initializeDefaultCookiesIfNeeded();
+    
+    const hasCookies = await cookieManager.hasCookies();
+    if (hasCookies) {
+      const info = await cookieManager.getCookieInfo();
+      console.log(`✅ Sistema de cookies operacional (${info.count} cookies carregados)`);
+    } else {
+      console.log('⚠️ Falha na inicialização do sistema de cookies');
+    }
+  } catch (error) {
+    console.error('❌ Erro ao inicializar cookies:', error.message);
+    console.log('⚠️ API funcionará sem cookies (funcionalidade limitada)');
+  }
+  
   console.log('\n📋 Endpoints disponíveis:');
   console.log('  • POST /api/yt_search - Pesquisar vídeos no YouTube');
   console.log('  • POST /api/comments - Obter comentários de vídeos');

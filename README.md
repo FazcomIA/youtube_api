@@ -56,6 +56,15 @@ npm start
 - Suporte a transcrições manuais (priorizadas) e geradas automaticamente
 - Resposta flexível: texto corrido ou array de objetos com timestamps
 
+### ✅ Gerenciamento de Cookies (Novo!)
+- **Inicialização automática**: API já funciona com cookies padrão para transcrições
+- Upload de cookies personalizados do navegador para contornar bloqueios específicos
+- **Sem configuração manual**: transcrições funcionam imediatamente após iniciar a API
+- Solução para quando transcrições funcionam localmente mas falham no servidor
+- Suporte a múltiplos formatos de cookies (array, objeto, string)
+- Armazenamento persistente em container Docker
+- APIs completas para gerenciamento (upload, consulta, remoção, restauração)
+
 ## 🛠️ Estrutura do Projeto
 
 ```
@@ -277,6 +286,33 @@ POST /api/transcription
 }
 ```
 
+### 🍪 Gerenciamento de Cookies
+```
+POST /api/cookies/upload     # Upload de cookies personalizados
+GET /api/cookies/info        # Informações dos cookies salvos
+GET /api/cookies/check       # Verificar se há cookies
+DELETE /api/cookies          # Remover todos os cookies
+GET /api/cookies/defaults    # Ver cookies padrão disponíveis
+POST /api/cookies/restore    # Restaurar cookies padrão
+GET /api/cookies/status      # Status completo do sistema
+```
+
+**Cookies Padrão Automáticos:**
+A API já vem pré-configurada com cookies funcionais que permitem transcrições imediatas. Não é necessário configurar nada manualmente.
+
+**Upload de Cookies Personalizados:**
+```json
+{
+  "cookies": [
+    {
+      "name": "VISITOR_INFO1_LIVE",
+      "value": "valor_do_cookie",
+      "domain": ".youtube.com"
+    }
+  ]
+}
+```
+
 ### 🏥 Health Check
 ```
 GET /health
@@ -350,22 +386,33 @@ curl -X GET http://localhost:3000/health
 ### Problemas Comuns em Produção
 
 #### Transcrições não funcionam no servidor (mas funcionam localmente)
-**Causa:** YouTube pode bloquear IPs de datacenters/cloud providers.
+**✅ AGORA RESOLVIDO AUTOMATICAMENTE:** A API já vem com cookies padrão que resolvem a maioria dos bloqueios.
 
-**Soluções:**
-1. **Configurar timeout maior:**
+**Causa original:** YouTube pode bloquear IPs de datacenters/cloud providers.
+
+**Soluções (em ordem de prioridade):**
+1. **🆕 API funciona automaticamente (NOVO!):**
+   - Cookies padrão são carregados na inicialização
+   - Transcrições já funcionam sem configuração
+   - Zero setup necessário
+   
+2. **Usar cookies personalizados (se necessário):**
    ```bash
-   YOUTUBE_TIMEOUT=60000  # 60 segundos
+   # Veja COOKIES_GUIDE.md para instruções detalhadas
+   curl -X POST https://sua-api.com/api/cookies/upload \
+     -H "Content-Type: application/json" \
+     -d @cookies.json
    ```
 
-2. **Verificar logs detalhados:**
-   - Acesse os logs da aplicação no seu provedor
-   - Procure por mensagens como "IP bloqueado" ou "timeout"
+3. **Restaurar cookies padrão:**
+   ```bash
+   curl -X POST https://sua-api.com/api/cookies/restore
+   ```
 
-3. **Problemas conhecidos por ambiente:**
-   - **EasyPanel/VPS:** IPs podem estar em blacklist do YouTube
-   - **Heroku/Railway:** Rate limiting mais agressivo
-   - **Vercel/Netlify:** Timeouts em functions
+4. **Verificar status do sistema:**
+   ```bash
+   curl -X GET https://sua-api.com/api/cookies/status
+   ```
 
 #### Erro 500 em endpoints específicos
 **Diagnóstico:**

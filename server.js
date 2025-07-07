@@ -91,6 +91,7 @@ const swaggerOptions = {
   apis: ['./server.js']
 };
 
+
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 
 // Middleware personalizado para Swagger com URL dinâmica
@@ -127,7 +128,21 @@ app.get('/', (req, res) => {
       ytLastVideo: 'POST /api/yt_last_video',
       ytVideoInfo: 'POST /api/yt_video_info',
       transcription: 'POST /api/transcription',
+      cookies: {
+        upload: 'POST /api/cookies/upload',
+        info: 'GET /api/cookies/info',
+        check: 'GET /api/cookies/check',
+        delete: 'DELETE /api/cookies',
+        defaults: 'GET /api/cookies/defaults',
+        restore: 'POST /api/cookies/restore',
+        status: 'GET /api/cookies/status'
+      },
       health: 'GET /health'
+    },
+    features: {
+      autoInitialization: 'API já funciona com cookies padrão para transcrições',
+      cookieManagement: 'Sistema completo de gerenciamento de cookies',
+      persistentStorage: 'Cookies salvos persistem entre reinicializações'
     }
   });
 });
@@ -306,6 +321,124 @@ app.use(routes);
  *         description: Status da API
  */
 
+/**
+ * @swagger
+ * /api/cookies/upload:
+ *   post:
+ *     summary: Upload de cookies do YouTube para transcrições
+ *     description: Permite enviar cookies do navegador para contornar bloqueios de IP/bot
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - cookies
+ *             properties:
+ *               cookies:
+ *                 oneOf:
+ *                   - type: array
+ *                     items:
+ *                       type: object
+ *                       properties:
+ *                         name:
+ *                           type: string
+ *                         value:
+ *                           type: string
+ *                         domain:
+ *                           type: string
+ *                   - type: object
+ *                     additionalProperties:
+ *                       type: string
+ *                   - type: string
+ *                 description: Cookies em formato array, objeto ou string
+ *     responses:
+ *       200:
+ *         description: Cookies salvos com sucesso
+ *       400:
+ *         description: Erro na requisição ou formato inválido
+ *       500:
+ *         description: Erro interno do servidor
+ */
+
+/**
+ * @swagger
+ * /api/cookies/info:
+ *   get:
+ *     summary: Obtém informações dos cookies salvos
+ *     responses:
+ *       200:
+ *         description: Informações dos cookies
+ *       500:
+ *         description: Erro interno do servidor
+ */
+
+/**
+ * @swagger
+ * /api/cookies/check:
+ *   get:
+ *     summary: Verifica se há cookies salvos
+ *     responses:
+ *       200:
+ *         description: Status dos cookies
+ *       500:
+ *         description: Erro interno do servidor
+ */
+
+/**
+ * @swagger
+ * /api/cookies:
+ *   delete:
+ *     summary: Remove todos os cookies salvos
+ *     responses:
+ *       200:
+ *         description: Cookies removidos com sucesso
+ *       400:
+ *         description: Erro ao remover cookies
+ *       500:
+ *         description: Erro interno do servidor
+ */
+
+/**
+ * @swagger
+ * /api/cookies/defaults:
+ *   get:
+ *     summary: Obtém cookies padrão para transcrições
+ *     responses:
+ *       200:
+ *         description: Cookies padrão
+ *       500:
+ *         description: Erro interno do servidor
+ */
+
+/**
+ * @swagger
+ * /api/cookies/restore:
+ *   post:
+ *     summary: Restaura cookies padrão
+ *     description: Sobrescreve cookies existentes com cookies padrão funcionais
+ *     responses:
+ *       200:
+ *         description: Cookies padrão restaurados com sucesso
+ *       400:
+ *         description: Falha ao restaurar cookies
+ *       500:
+ *         description: Erro interno do servidor
+ */
+
+/**
+ * @swagger
+ * /api/cookies/status:
+ *   get:
+ *     summary: Verifica o status do gerenciamento de cookies
+ *     responses:
+ *       200:
+ *         description: Status do gerenciamento de cookies
+ *       500:
+ *         description: Erro interno do servidor
+ */
+
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log('🚀 FCI - API Youtube v1 iniciada!');
@@ -319,4 +452,9 @@ app.listen(PORT, () => {
   console.log('  • POST /api/yt_video_info - Obter informações de vídeo específico');
   console.log('  • POST /api/transcription - Obter transcrição de vídeos');
   console.log('  • GET /health - Verificar saúde da API');
+  console.log('\n🍪 Sistema de Cookies:');
+  console.log('  • Cookies padrão carregados automaticamente');
+  console.log('  • Transcrições já funcionam sem configuração');
+  console.log('  • GET /api/cookies/status - Status do sistema');
+  console.log('  • POST /api/cookies/upload - Upload cookies personalizados');
 }); 

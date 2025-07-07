@@ -30,9 +30,9 @@ COPY --from=builder --chown=youtubeapi:nodejs /app/node_modules ./node_modules
 # Copiar código da aplicação
 COPY --chown=youtubeapi:nodejs . .
 
-# Criar diretório de logs
-RUN mkdir -p logs && \
-    chown -R youtubeapi:nodejs logs
+# Criar diretórios necessários
+RUN mkdir -p logs data/cookies && \
+    chown -R youtubeapi:nodejs logs data
 
 # Definir variáveis de ambiente
 ENV NODE_ENV=production

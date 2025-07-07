@@ -127,9 +127,23 @@ class YouTubeExtractor {
         try {
             const response = await axios.get(videoUrl, { headers: this.headers });
             
-            // Extrai dados do ytInitialPlayerResponse
-            let videoData = {};
+            // Inicializar objeto com dados básicos
+            let videoData = {
+                videoId: '',
+                titulo: '',
+                title: '', // Adicionar title desde o início
+                descricao: '',
+                autor: '',
+                channelId: '',
+                duracao: 0,
+                visualizacoes: 0,
+                likes: 0,
+                comentarios: 0,
+                tags: [],
+                dataPublicacao: ''
+            };
             
+            // Extrai dados do ytInitialPlayerResponse
             const playerResponseMatch = response.data.match(/ytInitialPlayerResponse\s*=\s*({.+?});/);
             if (playerResponseMatch) {
                 try {
@@ -137,16 +151,15 @@ class YouTubeExtractor {
                     const videoDetails = playerData.videoDetails;
                     
                     if (videoDetails) {
-                        videoData = {
-                            videoId: videoDetails.videoId,
-                            titulo: videoDetails.title,
-                            descricao: videoDetails.shortDescription,
-                            autor: videoDetails.author,
-                            channelId: videoDetails.channelId,
-                            duracao: parseInt(videoDetails.lengthSeconds),
-                            visualizacoes: parseInt(videoDetails.viewCount),
-                            tags: videoDetails.keywords || []
-                        };
+                        videoData.videoId = videoDetails.videoId || '';
+                        videoData.titulo = videoDetails.title || '';
+                        videoData.title = videoDetails.title || ''; // Garantir ambas as propriedades
+                        videoData.descricao = videoDetails.shortDescription || '';
+                        videoData.autor = videoDetails.author || '';
+                        videoData.channelId = videoDetails.channelId || '';
+                        videoData.duracao = parseInt(videoDetails.lengthSeconds) || 0;
+                        videoData.visualizacoes = parseInt(videoDetails.viewCount) || 0;
+                        videoData.tags = videoDetails.keywords || [];
                     }
                 } catch (e) {
                     console.log('Erro ao parsear ytInitialPlayerResponse:', e.message);
@@ -167,48 +180,107 @@ class YouTubeExtractor {
                                 
                                 // Data de publicação
                                 const dateText = primaryInfo.dateText?.simpleText;
-                                if (dateText) {
+                                if (dateText && !videoData.dataPublicacao) {
                                     videoData.dataPublicacao = dateText;
                                 }
 
-                                // Likes (pode estar em diferentes formatos)
+                                // Likes - tentar diferentes padrões
                                 const videoActions = primaryInfo.videoActions?.menuRenderer?.topLevelButtons;
-                                if (videoActions) {
+                                if (videoActions && !videoData.likes) {
                                     for (let action of videoActions) {
-                                        if (action.toggleButtonRenderer?.defaultText?.accessibility?.accessibilityData?.label) {
-                                            const label = action.toggleButtonRenderer.defaultText.accessibility.accessibilityData.label;
-                                            if (label.toLowerCase().includes('like')) {
-                                                videoData.likes = this.parseNumber(label);
+                                        const toggleButton = action.toggleButtonRenderer;
+                                        if (toggleButton) {
+                                            // Verificar diferentes formatos de likes
+                                            const defaultText = toggleButton.defaultText;
+                                            const accessibility = toggleButton.defaultText?.accessibility?.accessibilityData?.label;
+                                            
+                                            if (accessibility && accessibility.toLowerCase().includes('like')) {
+                                                videoData.likes = this.parseNumber(accessibility);
                                                 break;
+                                            }
+                                            
+                                            // Tentar pegar likes do texto simples
+                                            if (defaultText?.simpleText) {
+                                                const likesText = defaultText.simpleText;
+                                                if (likesText && !isNaN(this.parseNumber(likesText))) {
+                                                    videoData.likes = this.parseNumber(likesText);
+                                                    break;
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
-                        }
-                        
-                        // Tentar extrair número de comentários (aproximado)
-                        const commentsMatch = response.data.match(/"commentCount":\s*"(\d+)"/);
-                        if (commentsMatch) {
-                            videoData.comentarios = parseInt(commentsMatch[1]);
-                        } else {
-                            // Tentar outro padrão
-                            const commentsMatch2 = response.data.match(/(\d+(?:\.\d+)?[KM]?)\s*comment/i);
-                            if (commentsMatch2) {
-                                videoData.comentarios = this.parseNumber(commentsMatch2[1]);
+                            
+                            // Tentar extrair informações do videoSecondaryInfoRenderer para mais dados
+                            if (content.videoSecondaryInfoRenderer) {
+                                const secondaryInfo = content.videoSecondaryInfoRenderer;
+                                if (secondaryInfo.owner?.videoOwnerRenderer?.title?.runs?.[0]?.text && !videoData.autor) {
+                                    videoData.autor = secondaryInfo.owner.videoOwnerRenderer.title.runs[0].text;
+                                }
                             }
                         }
-
                     }
                 } catch (e) {
                     console.log('Erro ao parsear ytInitialData:', e.message);
                 }
             }
+            
+            // Tentar extrair número de comentários com múltiplos padrões
+            if (!videoData.comentarios) {
+                const commentPatterns = [
+                    /"commentCount":"(\d+)"/,
+                    /"commentCount":\s*"(\d+)"/,
+                    /(\d+(?:\.\d+)?[KMB]?)\s*comment/i,
+                    /(\d+(?:\.\d+)?[KMB]?)\s*comentário/i,
+                    /"commentsEntryPointHeaderRenderer".*?"commentCount":"(\d+)"/s
+                ];
+                
+                for (const pattern of commentPatterns) {
+                    const match = response.data.match(pattern);
+                    if (match) {
+                        videoData.comentarios = this.parseNumber(match[1]);
+                        break;
+                    }
+                }
+            }
+            
+            // Fallback: se não conseguimos extrair o título, tentar do elemento title da página
+            if (!videoData.titulo && !videoData.title) {
+                const titleMatch = response.data.match(/<title>([^<]+)<\/title>/);
+                if (titleMatch) {
+                    const pageTitle = titleMatch[1].replace(' - YouTube', '').trim();
+                    videoData.titulo = pageTitle;
+                    videoData.title = pageTitle;
+                }
+            }
+            
+            // Garantir que sempre temos título e title com o mesmo valor
+            if (videoData.titulo && !videoData.title) {
+                videoData.title = videoData.titulo;
+            } else if (videoData.title && !videoData.titulo) {
+                videoData.titulo = videoData.title;
+            }
 
             return videoData;
         } catch (error) {
             console.error('Erro ao extrair detalhes do vídeo:', error.message);
-            throw error;
+            // Retornar um objeto básico mesmo em caso de erro
+            return {
+                videoId: '',
+                titulo: '',
+                title: '',
+                descricao: '',
+                autor: '',
+                channelId: '',
+                duracao: 0,
+                visualizacoes: 0,
+                likes: 0,
+                comentarios: 0,
+                tags: [],
+                dataPublicacao: '',
+                erro: error.message
+            };
         }
     }
 
@@ -236,10 +308,14 @@ class YouTubeExtractor {
             // Extrai informações detalhadas do vídeo
             const videoDetails = await this.getVideoDetails(latestVideo.url);
 
+            // Combinar dados básicos com dados detalhados, preservando informações importantes
             return {
                 ...videoDetails,
                 url: latestVideo.url,
                 thumbnail: latestVideo.thumbnail,
+                // Usar dados detalhados se disponíveis, senão usar dados básicos da lista
+                titulo: videoDetails.titulo || latestVideo.title,
+                title: videoDetails.title || latestVideo.title,
                 visualizacoes: videoDetails.visualizacoes || this.parseNumber(latestVideo.viewCount),
                 dataPublicacao: videoDetails.dataPublicacao || latestVideo.publishedTime,
                 duracao: videoDetails.duracao || this.parseDuration(latestVideo.duration)
@@ -271,23 +347,38 @@ class YouTubeExtractor {
 
     /**
      * Converte string de número com formatação para número
-     * @param {string} str - String com número (ex: "1,234", "1.2K")
+     * @param {string} str - String com número (ex: "1,234", "1.2K", "2.5M")
      * @returns {number} - Número convertido
      */
     parseNumber(str) {
         if (!str) return 0;
         
-        str = str.toString().toLowerCase().replace(/[,\s]/g, '');
+        // Converter para string e limpar
+        str = str.toString().toLowerCase().trim();
         
-        if (str.includes('k')) {
-            return Math.round(parseFloat(str.replace('k', '')) * 1000);
-        } else if (str.includes('m')) {
-            return Math.round(parseFloat(str.replace('m', '')) * 1000000);
-        } else if (str.includes('b')) {
-            return Math.round(parseFloat(str.replace('b', '')) * 1000000000);
+        // Remover texto extra (como "views", "likes", etc.)
+        str = str.replace(/\s*(views?|likes?|visualizações|curtidas|comentários?|comments?).*$/i, '');
+        
+        // Remover vírgulas, pontos como separadores de milhares e espaços
+        str = str.replace(/[,\s]/g, '');
+        
+        // Tratar diferentes formatos de abreviação
+        if (str.includes('k') || str.includes('mil')) {
+            const number = parseFloat(str.replace(/[k|mil]/g, ''));
+            return Math.round(number * 1000);
+        } else if (str.includes('m') || str.includes('milhões')) {
+            const number = parseFloat(str.replace(/[m|milhões]/g, ''));
+            return Math.round(number * 1000000);
+        } else if (str.includes('b') || str.includes('bilhões')) {
+            const number = parseFloat(str.replace(/[b|bilhões]/g, ''));
+            return Math.round(number * 1000000000);
         }
         
-        return parseInt(str.replace(/\D/g, '')) || 0;
+        // Tentar extrair apenas números
+        const numberOnly = str.replace(/[^\d.]/g, '');
+        const parsed = parseInt(numberOnly) || 0;
+        
+        return parsed;
     }
 
     /**

@@ -24,6 +24,8 @@ services:
     volumes:
       # Montar logs em volume para persistência
       - fci-api-youtube-logs:/app/logs
+      # Montar cookies em volume para persistência
+      - fci-api-youtube-cookies:/app/data/cookies
       # Montar timezone local
       - /etc/localtime:/etc/localtime:ro
     networks:
@@ -46,6 +48,8 @@ services:
 # Volumes persistentes
 volumes:
   fci-api-youtube-logs:
+    driver: local
+  fci-api-youtube-cookies:
     driver: local
 
 # Rede personalizada

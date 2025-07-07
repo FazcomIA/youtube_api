@@ -1,5 +1,6 @@
 const axios = require('axios');
 const xml2js = require('xml2js');
+const CookieManager = require('./cookieManager');
 
 // Configurações baseadas no código Python original
 const WATCH_URL = 'https://www.youtube.com/watch?v={video_id}';
@@ -22,6 +23,9 @@ class YouTubeTranscriptApi {
             'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:120.0) Gecko/20100101 Firefox/120.0'
         ];
         
+        // Instância do gerenciador de cookies
+        this.cookieManager = new CookieManager();
+        
         this.httpClient = axios.create({
             timeout: parseInt(process.env.YOUTUBE_TIMEOUT || '45000'), // 45 segundos por padrão
             headers: {
@@ -41,10 +45,25 @@ class YouTubeTranscriptApi {
             }
         });
         
-        // Interceptador para rotacionar User-Agent
-        this.httpClient.interceptors.request.use((config) => {
+        // Interceptador para rotacionar User-Agent e aplicar cookies
+        this.httpClient.interceptors.request.use(async (config) => {
+            // Rotacionar User-Agent
             const randomUserAgent = this.userAgents[Math.floor(Math.random() * this.userAgents.length)];
             config.headers['User-Agent'] = randomUserAgent;
+            
+            // Aplicar cookies se disponíveis
+            try {
+                const cookieString = await this.cookieManager.getCookieString();
+                if (cookieString) {
+                    config.headers['Cookie'] = cookieString;
+                    console.log('🍪 Cookies aplicados à requisição');
+                } else {
+                    console.log('📝 Nenhum cookie disponível, usando requisição sem cookies');
+                }
+            } catch (error) {
+                console.log('⚠️ Erro ao carregar cookies, continuando sem eles:', error.message);
+            }
+            
             return config;
         });
         

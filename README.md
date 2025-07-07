@@ -249,6 +249,20 @@ POST /api/yt_last_video
 }
 ```
 
+### 📹 Informações de Vídeo Específico
+```
+POST /api/yt_video_info
+```
+
+**Parâmetros:**
+```json
+{
+  "videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID"
+}
+```
+
+**Retorna:** Título, autor, visualizações, likes, data de publicação, duração, comentários, tags, descrição, etc.
+
 ### 📝 Transcrição
 ```
 POST /api/transcription
@@ -292,6 +306,16 @@ const commentsResponse = await fetch('http://localhost:3000/api/comments', {
   })
 });
 const comments = await commentsResponse.json();
+
+// Obter informações de vídeo específico
+const videoInfoResponse = await fetch('http://localhost:3000/api/yt_video_info', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    videoUrl: 'https://www.youtube.com/watch?v=VIDEO_ID'
+  })
+});
+const videoInfo = await videoInfoResponse.json();
 ```
 
 ### cURL
@@ -305,6 +329,11 @@ curl -X POST http://localhost:3000/api/yt_search \
 curl -X POST http://localhost:3000/api/comments \
   -H "Content-Type: application/json" \
   -d '{"videoIdOuUrl": "https://www.youtube.com/watch?v=VIDEO_ID", "limite": 5}'
+
+# Informações de vídeo específico
+curl -X POST http://localhost:3000/api/yt_video_info \
+  -H "Content-Type: application/json" \
+  -d '{"videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID"}'
 
 # Health check
 curl -X GET http://localhost:3000/health

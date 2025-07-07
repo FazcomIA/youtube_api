@@ -24,6 +24,11 @@ const getLatestVideo = async (req, res) => {
       videoInfo.data = commentDownloader.converterDataRelativa(videoInfo.dataPublicacao);
     }
     
+    // Adicionar propriedade 'title' além do 'titulo' existente
+    if (videoInfo.titulo) {
+      videoInfo.title = videoInfo.titulo;
+    }
+    
     console.log(`✅ Vídeo mais recente encontrado: ${videoInfo.titulo}`);
     res.json(videoInfo);
   } catch (erro) {
@@ -35,6 +40,47 @@ const getLatestVideo = async (req, res) => {
   }
 };
 
+/**
+ * Controller para obter informações de um vídeo específico
+ */
+const getVideoInfo = async (req, res) => {
+  try {
+    const { videoUrl } = req.body;
+    
+    if (!videoUrl) {
+      return res.status(400).json({ erro: 'É necessário fornecer a URL do vídeo' });
+    }
+    
+    console.log(`🔍 Buscando informações do vídeo: ${videoUrl}`);
+    
+    // Extrair informações detalhadas do vídeo
+    const videoInfo = await youtubeExtractor.getVideoDetails(videoUrl);
+    
+    // Adicionar propriedade 'data' convertendo dataPublicacao
+    if (videoInfo.dataPublicacao) {
+      videoInfo.data = commentDownloader.converterDataRelativa(videoInfo.dataPublicacao);
+    }
+    
+    // Adicionar propriedade 'title' além do 'titulo' existente
+    if (videoInfo.titulo) {
+      videoInfo.title = videoInfo.titulo;
+    }
+    
+    // Adicionar URL do vídeo na resposta
+    videoInfo.url = videoUrl;
+    
+    console.log(`✅ Informações do vídeo obtidas: ${videoInfo.titulo}`);
+    res.json(videoInfo);
+  } catch (erro) {
+    console.error('Erro ao processar requisição:', erro);
+    res.status(500).json({ 
+      erro: 'Erro ao obter informações do vídeo',
+      mensagem: erro.message 
+    });
+  }
+};
+
 module.exports = {
-  getLatestVideo
+  getLatestVideo,
+  getVideoInfo
 }; 

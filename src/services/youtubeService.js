@@ -186,6 +186,19 @@ class YouTubeExtractor {
                                 }
                             }
                         }
+                        
+                        // Tentar extrair número de comentários (aproximado)
+                        const commentsMatch = response.data.match(/"commentCount":\s*"(\d+)"/);
+                        if (commentsMatch) {
+                            videoData.comentarios = parseInt(commentsMatch[1]);
+                        } else {
+                            // Tentar outro padrão
+                            const commentsMatch2 = response.data.match(/(\d+(?:\.\d+)?[KM]?)\s*comment/i);
+                            if (commentsMatch2) {
+                                videoData.comentarios = this.parseNumber(commentsMatch2[1]);
+                            }
+                        }
+
                     }
                 } catch (e) {
                     console.log('Erro ao parsear ytInitialData:', e.message);

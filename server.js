@@ -125,6 +125,7 @@ app.get('/', (req, res) => {
       ytSearch: 'POST /api/yt_search',
       comments: 'POST /api/comments',
       ytLastVideo: 'POST /api/yt_last_video',
+      ytVideoInfo: 'POST /api/yt_video_info',
       transcription: 'POST /api/transcription',
       health: 'GET /health'
     }
@@ -235,6 +236,32 @@ app.use(routes);
 
 /**
  * @swagger
+ * /api/yt_video_info:
+ *   post:
+ *     summary: Obtém informações de um vídeo específico
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - videoUrl
+ *             properties:
+ *               videoUrl:
+ *                 type: string
+ *                 description: URL do vídeo do YouTube
+ *     responses:
+ *       200:
+ *         description: Informações do vídeo
+ *       400:
+ *         description: Erro na requisição
+ *       500:
+ *         description: Erro interno do servidor
+ */
+
+/**
+ * @swagger
  * /api/transcription:
  *   post:
  *     summary: Obtém transcrição de um vídeo
@@ -289,6 +316,7 @@ app.listen(PORT, () => {
   console.log('  • POST /api/yt_search - Pesquisar vídeos no YouTube');
   console.log('  • POST /api/comments - Obter comentários de vídeos');
   console.log('  • POST /api/yt_last_video - Obter vídeo mais recente de um canal');
+  console.log('  • POST /api/yt_video_info - Obter informações de vídeo específico');
   console.log('  • POST /api/transcription - Obter transcrição de vídeos');
   console.log('  • GET /health - Verificar saúde da API');
 }); 

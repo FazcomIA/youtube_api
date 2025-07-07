@@ -4,7 +4,7 @@ const { YouTubeTranscriptApi } = require('../services/transcriptionService');
 const youtubeTranscriptApi = new YouTubeTranscriptApi();
 
 /**
- * Controller para obter transcrição de vídeos
+ * Controller para obter transcrição de vídeos usando API externa (kome.ai)
  */
 const getTranscription = async (req, res) => {
   try {
@@ -17,8 +17,8 @@ const getTranscription = async (req, res) => {
       });
     }
     
-    console.log(`🔍 Obtendo transcrição do vídeo: ${videoUrl}`);
-    console.log(`📋 Parâmetros: idiomas=${JSON.stringify(languages)}, timestamps=${includeTimestamps}`);
+    console.log(`🔍 Solicitação de transcrição via kome.ai: ${videoUrl}`);
+    console.log(`📋 Parâmetros: timestamps=${includeTimestamps}`);
     console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
     
     let videoId;
@@ -38,17 +38,17 @@ const getTranscription = async (req, res) => {
       });
     }
     
-    // Obter transcrição
+    // Obter transcrição via kome.ai
     const transcriptResult = await youtubeTranscriptApi.getTranscript(videoId, {
       languages,
       includeTimestamps
     });
     
     if (transcriptResult.success) {
-      console.log(`✅ Transcrição obtida com sucesso (${transcriptResult.segments_count} segmentos)`);
+      console.log(`✅ Transcrição obtida com sucesso via kome.ai (${transcriptResult.segments_count} segmentos)`);
       res.json(transcriptResult);
     } else {
-      console.log(`❌ Erro ao obter transcrição: ${transcriptResult.error}`);
+      console.log(`❌ Erro ao obter transcrição via kome.ai: ${transcriptResult.error}`);
       // Retornar status 200 mas com success: false (conforme formato da API)
       res.json(transcriptResult);
     }
@@ -67,7 +67,8 @@ const getTranscription = async (req, res) => {
       video_id: '',
       video_url: req.body.videoUrl || '',
       transcript: req.body.includeTimestamps ? [] : '',
-      available_languages: []
+      available_languages: [],
+      service: 'kome.ai'
     });
   }
 };

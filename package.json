@@ -1,7 +1,7 @@
 {
   "name": "fci-api-youtube-v1",
-  "version": "1.0.0",
-  "description": "FCI - API Youtube v1 - API unificada para extração de informações, comentários e legendas do YouTube",
+  "version": "1.2.0",
+  "description": "FCI - API Youtube v1 - API unificada para extração de informações, comentários e transcrições do YouTube via serviço externo",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -17,7 +17,6 @@
     "docker:push:hub": "./scripts/docker-build-push.sh",
     "docker:setup:buildx": "docker buildx create --name multiarch-builder --use",
     "health": "node scripts/healthcheck.js",
-    "fix-cookies": "node scripts/fix-cookies.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
@@ -26,6 +25,7 @@
     "nodejs",
     "video-info",
     "comments",
+    "transcription",
     "api",
     "express",
     "swagger"
@@ -40,7 +40,6 @@
     "express": "^4.18.2",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.0",
-    "xml2js": "^0.6.2",
     "youtube-sr": "^4.3.11",
     "youtubei": "^1.0.5",
     "yt-search": "^2.13.1"

@@ -49,21 +49,14 @@ npm start
 - Filtragem por quantidade e ordenação (recentes/populares)
 - Formato JSON personalizado com informações úteis
 
-### ✅ Extração de Transcrição
-- Obter transcrição completa do vídeo no idioma solicitado
-- Texto sincronizado com timestamps formatados (HH:MM:SS)
-- Informações sobre idioma usado e idiomas disponíveis
-- Suporte a transcrições manuais (priorizadas) e geradas automaticamente
-- Resposta flexível: texto corrido ou array de objetos com timestamps
-
-### ✅ Gerenciamento de Cookies (Novo!)
-- **Inicialização automática**: API já funciona com cookies padrão para transcrições
-- Upload de cookies personalizados do navegador para contornar bloqueios específicos
-- **Sem configuração manual**: transcrições funcionam imediatamente após iniciar a API
-- Solução para quando transcrições funcionam localmente mas falham no servidor
-- Suporte a múltiplos formatos de cookies (array, objeto, string)
-- Armazenamento persistente em container Docker
-- APIs completas para gerenciamento (upload, consulta, remoção, restauração)
+### ✅ Extração de Transcrição (Novo Sistema!)
+- **🌟 Serviço externo confiável**: Integração com kome.ai
+- **🔧 Zero configuração**: Funciona imediatamente em qualquer servidor
+- **🌍 Compatibilidade total**: Sem problemas de cookies ou bloqueios de IP
+- **📝 Texto completo**: Transcrição completa do vídeo
+- **⏱️ Timestamps opcionais**: Suporte a timestamps simulados para compatibilidade
+- **🎯 Detecção automática**: Idioma detectado automaticamente
+- **🛡️ Mais estável**: Sem dependência de sistemas internos do YouTube
 
 ## 🛠️ Estrutura do Projeto
 
@@ -120,7 +113,7 @@ Para criar uma imagem compatível com Mac (ARM64) e servidores Linux (AMD64):
 ./scripts/docker-build-push.sh mateusgomes
 
 # Com versão específica:
-./scripts/docker-build-push.sh mateusgomes 1.0.0
+./scripts/docker-build-push.sh mateusgomes 1.2.0
 ```
 
 #### Método 2: Comandos Manuais
@@ -183,7 +176,7 @@ PORT=3000
 BASE_URL=https://seu-dominio.com  # (auto-detectado na maioria dos casos)
 LOG_LEVEL=info
 API_TIMEOUT=30000
-YOUTUBE_TIMEOUT=45000  # Timeout específico para requisições ao YouTube (em ms)
+TRANSCRIPT_TIMEOUT=60000  # Timeout para API de transcrição (em ms)
 YOUTUBE_MAX_RESULTS=50
 YOUTUBE_DEFAULT_LANGUAGE=pt
 CORS_ORIGINS=https://meusite.com,https://localhost:3000  # (para desenvolvimento)
@@ -193,6 +186,7 @@ RATE_LIMIT_MAX=100
 **Importante para EasyPanel/Produção:**
 - `NODE_ENV=production` - Define o ambiente como produção
 - `BASE_URL` - (Opcional) URL completa da sua aplicação se não for detectada automaticamente
+- `TRANSCRIPT_TIMEOUT` - Timeout para requisições de transcrição (padrão: 60 segundos)
 - `CORS_ORIGINS` - (Opcional) Domínios específicos para CORS em desenvolvimento
 
 **Nota:** A aplicação detecta automaticamente a URL base através dos headers HTTP do EasyPanel/proxy reverso. Você só precisa definir `BASE_URL` se quiser forçar uma URL específica.
@@ -272,7 +266,7 @@ POST /api/yt_video_info
 
 **Retorna:** Título, autor, visualizações, likes, data de publicação, duração, comentários, tags, descrição, etc.
 
-### 📝 Transcrição
+### 📝 Transcrição (Sistema Atualizado!)
 ```
 POST /api/transcription
 ```
@@ -286,32 +280,11 @@ POST /api/transcription
 }
 ```
 
-### 🍪 Gerenciamento de Cookies
-```
-POST /api/cookies/upload     # Upload de cookies personalizados
-GET /api/cookies/info        # Informações dos cookies salvos
-GET /api/cookies/check       # Verificar se há cookies
-DELETE /api/cookies          # Remover todos os cookies
-GET /api/cookies/defaults    # Ver cookies padrão disponíveis
-POST /api/cookies/restore    # Restaurar cookies padrão
-GET /api/cookies/status      # Status completo do sistema
-```
-
-**Cookies Padrão Automáticos:**
-A API já vem pré-configurada com cookies funcionais que permitem transcrições imediatas. Não é necessário configurar nada manualmente.
-
-**Upload de Cookies Personalizados:**
-```json
-{
-  "cookies": [
-    {
-      "name": "VISITOR_INFO1_LIVE",
-      "value": "valor_do_cookie",
-      "domain": ".youtube.com"
-    }
-  ]
-}
-```
+**🌟 Novidades da versão 1.2.0:**
+- **Serviço externo confiável**: Usa kome.ai para transcrições
+- **Compatibilidade garantida**: Funciona em qualquer servidor
+- **Zero configuração**: Não precisa de cookies ou configurações especiais
+- **Mais estável**: Sem dependência de sistemas internos do YouTube
 
 ### 🏥 Health Check
 ```
@@ -343,6 +316,17 @@ const commentsResponse = await fetch('http://localhost:3000/api/comments', {
 });
 const comments = await commentsResponse.json();
 
+// Obter transcrição (novo sistema!)
+const transcriptionResponse = await fetch('http://localhost:3000/api/transcription', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    videoUrl: 'https://www.youtube.com/watch?v=VIDEO_ID',
+    includeTimestamps: false
+  })
+});
+const transcription = await transcriptionResponse.json();
+
 // Obter informações de vídeo específico
 const videoInfoResponse = await fetch('http://localhost:3000/api/yt_video_info', {
   method: 'POST',
@@ -366,6 +350,11 @@ curl -X POST http://localhost:3000/api/comments \
   -H "Content-Type: application/json" \
   -d '{"videoIdOuUrl": "https://www.youtube.com/watch?v=VIDEO_ID", "limite": 5}'
 
+# Transcrição (novo sistema!)
+curl -X POST http://localhost:3000/api/transcription \
+  -H "Content-Type: application/json" \
+  -d '{"videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID", "includeTimestamps": false}'
+
 # Informações de vídeo específico
 curl -X POST http://localhost:3000/api/yt_video_info \
   -H "Content-Type: application/json" \
@@ -378,41 +367,25 @@ curl -X GET http://localhost:3000/health
 ## 🚨 Limitações
 
 - Dependente da estrutura HTML do YouTube (pode quebrar com mudanças)
-- Rate limiting do YouTube pode afetar requisições em massa
+- Rate limiting do YouTube pode afetar requisições em massa  
 - Algumas informações podem não estar disponíveis para todos os vídeos
+- Transcrições dependem do serviço externo kome.ai
 
 ## 🛠️ Troubleshooting
 
-### Problemas Comuns em Produção
+### ✅ Transcrições Agora Funcionam em Qualquer Servidor!
 
-#### Transcrições não funcionam no servidor (mas funcionam localmente)
-**✅ AGORA RESOLVIDO AUTOMATICAMENTE:** A API já vem com cookies padrão que resolvem a maioria dos bloqueios.
+**🎉 Problema RESOLVIDO na v1.2.0:** 
+- **Antes**: Transcrições falhavam em servidores de cloud devido a bloqueios de IP
+- **Agora**: Sistema completamente reformulado usando serviço externo confiável
+- **Resultado**: Funciona perfeitamente em desenvolvimento, produção e qualquer tipo de servidor
 
-**Causa original:** YouTube pode bloquear IPs de datacenters/cloud providers.
+### Problemas Comuns
 
-**Soluções (em ordem de prioridade):**
-1. **🆕 API funciona automaticamente (NOVO!):**
-   - Cookies padrão são carregados na inicialização
-   - Transcrições já funcionam sem configuração
-   - Zero setup necessário
-   
-2. **Usar cookies personalizados (se necessário):**
-   ```bash
-   # Veja COOKIES_GUIDE.md para instruções detalhadas
-   curl -X POST https://sua-api.com/api/cookies/upload \
-     -H "Content-Type: application/json" \
-     -d @cookies.json
-   ```
-
-3. **Restaurar cookies padrão:**
-   ```bash
-   curl -X POST https://sua-api.com/api/cookies/restore
-   ```
-
-4. **Verificar status do sistema:**
-   ```bash
-   curl -X GET https://sua-api.com/api/cookies/status
-   ```
+#### ✅ Transcrições
+- **Status**: ✅ FUNCIONANDO - Sistema atualizado na v1.2.0
+- **Solução**: Usa serviço externo (kome.ai) - compatível com qualquer servidor
+- **Nenhuma configuração necessária** - funciona imediatamente
 
 #### Erro 500 em endpoints específicos
 **Diagnóstico:**
@@ -426,18 +399,25 @@ curl -X POST https://sua-api.com/api/transcription \
   -d '{"videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID"}'
 ```
 
-#### CORS ainda não funciona
+#### CORS não funciona
 **Verificar configuração:**
 1. Confirme que `NODE_ENV=production` está definido
 2. Verifique se a URL do Swagger está correta no navegador
 3. Teste endpoints diretamente via cURL primeiro
 
-### Alternativas para Transcrições
+## 🔄 Changelog
 
-Se o serviço de transcrição não funcionar em produção:
-1. **Use a API local** para desenvolvimento/testes
-2. **Configure proxy** através de serviço intermediário
-3. **Use serviços alternativos** como OpenAI Whisper API
+### 🌟 v1.2.0 - Sistema de Transcrição Revolucionado
+- **🎯 Migração para API externa**: Transcrições agora via kome.ai
+- **🌍 Compatibilidade universal**: Funciona em qualquer servidor
+- **🗑️ Remoção do sistema de cookies**: Não mais necessário
+- **🚀 Zero configuração**: Funciona imediatamente após deploy
+- **📈 Maior estabilidade**: Sem dependência de sistemas internos do YouTube
+- **🔧 Simplificação do código**: Remoção de complexidades desnecessárias
+
+### 📚 Versões Anteriores
+- **v1.1.0**: Sistema de cookies padrão automático
+- **v1.0.0**: Release inicial com sistema próprio de transcrições
 
 ## 🔧 Desenvolvimento
 

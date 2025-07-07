@@ -6,9 +6,6 @@ const swaggerUi = require('swagger-ui-express');
 // Importar rotas
 const routes = require('./src/routes');
 
-// Importar CookieManager para inicialização
-const CookieManager = require('./src/services/cookieManager');
-
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -82,7 +79,7 @@ const swaggerOptions = {
     info: {
       title: 'FCI - API Youtube v1',
       version: '1.0.0',
-      description: 'API unificada para extração de informações e comentários de vídeos do YouTube'
+      description: 'API unificada para extração de informações e comentários de vídeos do YouTube com transcrições via serviço externo'
     },
     servers: [
       {
@@ -93,7 +90,6 @@ const swaggerOptions = {
   },
   apis: ['./server.js']
 };
-
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
 
@@ -131,22 +127,16 @@ app.get('/', (req, res) => {
       ytLastVideo: 'POST /api/yt_last_video',
       ytVideoInfo: 'POST /api/yt_video_info',
       transcription: 'POST /api/transcription',
-      cookies: {
-        upload: 'POST /api/cookies/upload',
-        info: 'GET /api/cookies/info',
-        check: 'GET /api/cookies/check',
-        delete: 'DELETE /api/cookies',
-        defaults: 'GET /api/cookies/defaults',
-        restore: 'POST /api/cookies/restore',
-        status: 'GET /api/cookies/status',
-        forceInit: 'POST /api/cookies/force-init'
-      },
       health: 'GET /health'
     },
     features: {
-      autoInitialization: 'API já funciona com cookies padrão para transcrições',
-      cookieManagement: 'Sistema completo de gerenciamento de cookies',
-      persistentStorage: 'Cookies salvos persistem entre reinicializações'
+      externalTranscription: 'Transcrições via serviço externo (kome.ai)',
+      videoSearch: 'Pesquisa avançada de vídeos no YouTube',
+      commentExtraction: 'Extração de comentários com filtros',
+      videoInfo: 'Informações detalhadas de vídeos e canais'
+    },
+    changelog: {
+      v1_2_0: 'Migração para API externa de transcrições - mais estável e compatível'
     }
   });
 });
@@ -283,7 +273,8 @@ app.use(routes);
  * @swagger
  * /api/transcription:
  *   post:
- *     summary: Obtém transcrição de um vídeo
+ *     summary: Obtém transcrição de um vídeo via serviço externo
+ *     description: Utiliza serviço externo (kome.ai) para obter transcrições, garantindo compatibilidade em qualquer servidor
  *     requestBody:
  *       required: true
  *       content:
@@ -300,11 +291,11 @@ app.use(routes);
  *                 type: array
  *                 items:
  *                   type: string
- *                 description: Lista de idiomas preferidos
+ *                 description: Lista de idiomas preferidos (não utilizado no serviço externo)
  *                 default: ["pt", "pt-BR", "en"]
  *               includeTimestamps:
  *                 type: boolean
- *                 description: Incluir timestamps na transcrição
+ *                 description: Incluir timestamps na transcrição (simulados para compatibilidade)
  *                 default: false
  *     responses:
  *       200:
@@ -325,161 +316,12 @@ app.use(routes);
  *         description: Status da API
  */
 
-/**
- * @swagger
- * /api/cookies/upload:
- *   post:
- *     summary: Upload de cookies do YouTube para transcrições
- *     description: Permite enviar cookies do navegador para contornar bloqueios de IP/bot
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - cookies
- *             properties:
- *               cookies:
- *                 oneOf:
- *                   - type: array
- *                     items:
- *                       type: object
- *                       properties:
- *                         name:
- *                           type: string
- *                         value:
- *                           type: string
- *                         domain:
- *                           type: string
- *                   - type: object
- *                     additionalProperties:
- *                       type: string
- *                   - type: string
- *                 description: Cookies em formato array, objeto ou string
- *     responses:
- *       200:
- *         description: Cookies salvos com sucesso
- *       400:
- *         description: Erro na requisição ou formato inválido
- *       500:
- *         description: Erro interno do servidor
- */
-
-/**
- * @swagger
- * /api/cookies/info:
- *   get:
- *     summary: Obtém informações dos cookies salvos
- *     responses:
- *       200:
- *         description: Informações dos cookies
- *       500:
- *         description: Erro interno do servidor
- */
-
-/**
- * @swagger
- * /api/cookies/check:
- *   get:
- *     summary: Verifica se há cookies salvos
- *     responses:
- *       200:
- *         description: Status dos cookies
- *       500:
- *         description: Erro interno do servidor
- */
-
-/**
- * @swagger
- * /api/cookies:
- *   delete:
- *     summary: Remove todos os cookies salvos
- *     responses:
- *       200:
- *         description: Cookies removidos com sucesso
- *       400:
- *         description: Erro ao remover cookies
- *       500:
- *         description: Erro interno do servidor
- */
-
-/**
- * @swagger
- * /api/cookies/defaults:
- *   get:
- *     summary: Obtém cookies padrão para transcrições
- *     responses:
- *       200:
- *         description: Cookies padrão
- *       500:
- *         description: Erro interno do servidor
- */
-
-/**
- * @swagger
- * /api/cookies/restore:
- *   post:
- *     summary: Restaura cookies padrão
- *     description: Sobrescreve cookies existentes com cookies padrão funcionais
- *     responses:
- *       200:
- *         description: Cookies padrão restaurados com sucesso
- *       400:
- *         description: Falha ao restaurar cookies
- *       500:
- *         description: Erro interno do servidor
- */
-
-/**
- * @swagger
- * /api/cookies/status:
- *   get:
- *     summary: Verifica o status do gerenciamento de cookies
- *     responses:
- *       200:
- *         description: Status do gerenciamento de cookies
- *       500:
- *         description: Erro interno do servidor
- */
-
-/**
- * @swagger
- * /api/cookies/force-init:
- *   post:
- *     summary: Força reinicialização do sistema de cookies (emergência)
- *     description: Endpoint de emergência para reinicializar o sistema de cookies quando há problemas
- *     responses:
- *       200:
- *         description: Sistema reinicializado com sucesso
- *       500:
- *         description: Erro na reinicialização
- */
-
 // Iniciar servidor
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
   console.log('🚀 FCI - API Youtube v1 iniciada!');
   console.log(`📡 Servidor rodando em ${BASE_URL}`);
   console.log(`📚 Documentação Swagger disponível em ${BASE_URL}/api-docs`);
   console.log(`🌍 Ambiente: ${NODE_ENV}`);
-  
-  // Garantir inicialização dos cookies padrão
-  try {
-    console.log('\n🔄 Inicializando sistema de cookies...');
-    const cookieManager = new CookieManager();
-    await cookieManager.initializeDefaultCookiesIfNeeded();
-    
-    const hasCookies = await cookieManager.hasCookies();
-    if (hasCookies) {
-      const info = await cookieManager.getCookieInfo();
-      console.log(`✅ Sistema de cookies operacional (${info.count} cookies carregados)`);
-    } else {
-      console.log('⚠️ Falha na inicialização do sistema de cookies');
-    }
-  } catch (error) {
-    console.error('❌ Erro ao inicializar cookies:', error.message);
-    console.log('⚠️ API funcionará sem cookies (funcionalidade limitada)');
-  }
   
   console.log('\n📋 Endpoints disponíveis:');
   console.log('  • POST /api/yt_search - Pesquisar vídeos no YouTube');
@@ -488,9 +330,10 @@ app.listen(PORT, async () => {
   console.log('  • POST /api/yt_video_info - Obter informações de vídeo específico');
   console.log('  • POST /api/transcription - Obter transcrição de vídeos');
   console.log('  • GET /health - Verificar saúde da API');
-  console.log('\n🍪 Sistema de Cookies:');
-  console.log('  • Cookies padrão carregados automaticamente');
-  console.log('  • Transcrições já funcionam sem configuração');
-  console.log('  • GET /api/cookies/status - Status do sistema');
-  console.log('  • POST /api/cookies/upload - Upload cookies personalizados');
+  
+  console.log('\n🔄 Sistema de Transcrição:');
+  console.log('  • Transcrições via serviço externo (kome.ai)');
+  console.log('  • Compatível com qualquer servidor');
+  console.log('  • Sem necessidade de configuração de cookies');
+  console.log('  • Mais estável e confiável');
 }); 

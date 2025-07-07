@@ -38,16 +38,6 @@ build/Release
 node_modules/
 jspm_packages/
 
-# Data directories
-data/
-data/cookies/
-
-# Cookie test/backup files (may contain sensitive data)
-test_cookies.json
-cookies_backup.json
-cookies_extracted.json
-**/cookies_*.json
-
 # TypeScript v1 declaration files
 typings/
 

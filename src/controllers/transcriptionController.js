@@ -8,7 +8,7 @@ const youtubeTranscriptApi = new YouTubeTranscriptApi();
  */
 const getTranscription = async (req, res) => {
   try {
-    const { videoUrl, languages = ['pt', 'pt-BR', 'en'], includeTimestamps = false } = req.body;
+    const { videoUrl } = req.body;
     
     if (!videoUrl) {
       return res.status(400).json({ 
@@ -18,7 +18,6 @@ const getTranscription = async (req, res) => {
     }
     
     console.log(`🔍 Solicitação de transcrição via kome.ai: ${videoUrl}`);
-    console.log(`📋 Parâmetros: timestamps=${includeTimestamps}`);
     console.log(`🌍 Ambiente: ${process.env.NODE_ENV || 'development'}`);
     
     let videoId;
@@ -33,18 +32,15 @@ const getTranscription = async (req, res) => {
         error: 'URL do vídeo inválida. Verifique se é uma URL válida do YouTube.',
         video_id: '',
         video_url: videoUrl,
-        transcript: includeTimestamps ? [] : ''
+        transcript: ''
       });
     }
     
     // Obter transcrição via kome.ai
-    const transcriptResult = await youtubeTranscriptApi.getTranscript(videoId, {
-      languages,
-      includeTimestamps
-    });
+    const transcriptResult = await youtubeTranscriptApi.getTranscript(videoId);
     
     if (transcriptResult.success) {
-      console.log(`✅ Transcrição obtida com sucesso via kome.ai (${transcriptResult.segments_count} segmentos)`);
+      console.log(`✅ Transcrição obtida com sucesso via kome.ai`);
       res.json(transcriptResult);
     } else {
       console.log(`❌ Erro ao obter transcrição via kome.ai: ${transcriptResult.error}`);
@@ -65,7 +61,7 @@ const getTranscription = async (req, res) => {
       error: 'Erro interno do servidor ao processar transcrição',
       video_id: '',
       video_url: req.body.videoUrl || '',
-      transcript: req.body.includeTimestamps ? [] : '',
+      transcript: '',
       service: 'kome.ai'
     });
   }

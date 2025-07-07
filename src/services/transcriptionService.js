@@ -74,14 +74,13 @@ class YouTubeTranscriptApi {
     }
 
     /**
-     * Processa a transcrição bruta e formata conforme solicitado
+     * Processa a transcrição bruta e limpa o texto
      * @param {string} rawTranscript - Transcrição bruta da API
-     * @param {boolean} includeTimestamps - Se deve incluir timestamps
-     * @returns {string|Array} Transcrição formatada
+     * @returns {string} Transcrição formatada
      */
-    processTranscript(rawTranscript, includeTimestamps = false) {
+    processTranscript(rawTranscript) {
         if (!rawTranscript) {
-            return includeTimestamps ? [] : '';
+            return '';
         }
 
         // Limpar texto básico
@@ -91,65 +90,27 @@ class YouTubeTranscriptApi {
             .replace(/\s+/g, ' ')  // Remover espaços múltiplos
             .trim();
 
-        if (includeTimestamps) {
-            // Para timestamps, dividir o texto em segmentos aproximados
-            // Como a API kome.ai não fornece timestamps, vamos simular
-            const sentences = cleanText.split(/[.!?]+/).filter(s => s.trim());
-            const segments = [];
-            
-            for (let i = 0; i < sentences.length; i++) {
-                const sentence = sentences[i].trim();
-                if (sentence) {
-                    // Simular timestamps aproximados (5 segundos por frase)
-                    const startTime = i * 5;
-                    const duration = 5;
-                    
-                    segments.push({
-                        start: this.secondsToTimeFormat(startTime),
-                        dur: duration.toFixed(3),
-                        text: sentence + (sentence.match(/[.!?]$/) ? '' : '.')
-                    });
-                }
-            }
-            
-            return segments;
-        }
-
         return cleanText;
     }
 
-    /**
-     * Converte segundos para formato HH:MM:SS
-     * @param {number} seconds - Segundos
-     * @returns {string} Tempo formatado
-     */
-    secondsToTimeFormat(seconds) {
-        const hours = Math.floor(seconds / 3600);
-        const minutes = Math.floor((seconds % 3600) / 60);
-        const secs = Math.floor(seconds % 60);
-        
-        return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-    }
+
 
     /**
      * Obtém a transcrição usando a API kome.ai
      * @param {string} videoId - ID do vídeo do YouTube
-     * @param {Object} options - Opções de configuração
      * @returns {Promise<Object>} Objeto com dados da transcrição
      */
-    async getTranscript(videoId, options = {}) {
-        const { languages = ['pt', 'pt-BR', 'en'], includeTimestamps = false } = options;
+    async getTranscript(videoId) {
         const videoUrl = `https://www.youtube.com/watch?v=${videoId}`;
         
         try {
             console.log('📝 Obtendo transcrição via kome.ai para:', videoId);
             console.log('🌐 URL do vídeo:', videoUrl);
-            console.log('🕐 Timestamps solicitados:', includeTimestamps);
             
-            // Preparar payload para a API kome.ai
+            // Preparar payload para a API kome.ai (apenas os campos necessários)
             const payload = {
                 video_id: videoUrl,
-                format: true  // Sempre usar formatação
+                format: true
             };
             
             console.log('📤 Enviando requisição para kome.ai...');
@@ -170,16 +131,8 @@ class YouTubeTranscriptApi {
             console.log('✅ Transcrição obtida com sucesso via kome.ai');
             console.log(`📊 Tamanho da transcrição: ${transcript.length} caracteres`);
             
-            // Processar transcrição
-            const processedTranscript = this.processTranscript(transcript, includeTimestamps);
-            
-            // Calcular número de segmentos
-            let segmentsCount = 1;
-            if (includeTimestamps && Array.isArray(processedTranscript)) {
-                segmentsCount = processedTranscript.length;
-            } else if (typeof processedTranscript === 'string') {
-                segmentsCount = processedTranscript.split(/[.!?]+/).filter(s => s.trim()).length;
-            }
+            // Processar transcrição (sempre texto simples)
+            const processedTranscript = this.processTranscript(transcript);
             
             // Retornar resposta no formato padrão da API
             return {
@@ -187,8 +140,6 @@ class YouTubeTranscriptApi {
                 error: '',
                 video_id: videoId,
                 video_url: videoUrl,
-                segments_count: segmentsCount,
-                include_timestamps: includeTimestamps,
                 transcript: processedTranscript,
                 service: 'kome.ai'
             };
@@ -230,7 +181,7 @@ class YouTubeTranscriptApi {
                 error: errorMessage,
                 video_id: videoId,
                 video_url: videoUrl,
-                transcript: includeTimestamps ? [] : '',
+                transcript: '',
                 service: 'kome.ai'
             };
         }

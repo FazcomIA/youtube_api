@@ -287,16 +287,6 @@ app.use(routes);
  *               videoUrl:
  *                 type: string
  *                 description: URL do vídeo do YouTube
- *               languages:
- *                 type: array
- *                 items:
- *                   type: string
- *                 description: Lista de idiomas preferidos (não utilizado no serviço externo)
- *                 default: ["pt", "pt-BR", "en"]
- *               includeTimestamps:
- *                 type: boolean
- *                 description: Incluir timestamps na transcrição (simulados para compatibilidade)
- *                 default: false
  *     responses:
  *       200:
  *         description: Transcrição do vídeo

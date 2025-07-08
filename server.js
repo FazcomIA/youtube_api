@@ -126,12 +126,14 @@ app.get('/', (req, res) => {
       comments: 'POST /api/comments',
       ytLastVideo: 'POST /api/yt_last_video',
       ytVideoInfo: 'POST /api/yt_video_info',
+      transcript: 'POST /api/transcript',
       health: 'GET /health'
     },
     features: {
       videoSearch: 'Pesquisa avançada de vídeos no YouTube',
       commentExtraction: 'Extração de comentários com filtros',
-      videoInfo: 'Informações detalhadas de vídeos e canais'
+      videoInfo: 'Informações detalhadas de vídeos e canais',
+      transcript: 'Transcrições via API externa (kome.ai)'
     }
   });
 });
@@ -264,6 +266,47 @@ app.use(routes);
  *         description: Erro interno do servidor
  */
 
+/**
+ * @swagger
+ * /api/transcript:
+ *   post:
+ *     summary: Obtém transcrição de um vídeo via API externa (kome.ai)
+ *     description: Faz requisição direta para a API kome.ai e retorna a transcrição do vídeo
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - video_id
+ *               - format
+ *             properties:
+ *               video_id:
+ *                 type: string
+ *                 description: URL do vídeo do YouTube
+ *                 example: "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+ *               format:
+ *                 type: boolean
+ *                 description: Flag de formatação (sempre true)
+ *                 example: true
+ *     responses:
+ *       200:
+ *         description: Transcrição do vídeo retornada pela API kome.ai
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 transcript:
+ *                   type: string
+ *                   description: Texto da transcrição
+ *       400:
+ *         description: Erro na requisição (video_id obrigatório ou URL inválida)
+ *       500:
+ *         description: Erro interno do servidor ou erro na API kome.ai
+ */
+
 
 
 /**
@@ -288,5 +331,6 @@ app.listen(PORT, () => {
   console.log('  • POST /api/comments - Obter comentários de vídeos');
   console.log('  • POST /api/yt_last_video - Obter vídeo mais recente de um canal');
   console.log('  • POST /api/yt_video_info - Obter informações de vídeo específico');
+  console.log('  • POST /api/transcript - Obter transcrição via kome.ai');
   console.log('  • GET /health - Verificar saúde da API');
 }); 

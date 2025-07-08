@@ -1,6 +1,6 @@
 {
   "name": "fci-api-youtube-v1",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "description": "FCI - API Youtube v1 - API unificada para extração de informações, comentários e transcrições do YouTube via serviço externo",
   "main": "server.js",
   "scripts": {

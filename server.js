@@ -119,19 +119,22 @@ app.use('/api-docs', (req, res, next) => {
 // Rota inicial
 app.get('/', (req, res) => {
   res.json({
-    message: 'FCI - API Youtube v1 - Informações e Comentários',
+    message: 'FCI - API Youtube v1 - Informações, Comentários e Transcrições',
     documentacao: `/api-docs`,
     endpoints: {
       ytSearch: 'POST /api/yt_search',
       comments: 'POST /api/comments',
       ytLastVideo: 'POST /api/yt_last_video',
       ytVideoInfo: 'POST /api/yt_video_info',
+      transcription: 'POST /api/transcription',
+      transcriptionJson: 'POST /api/transcription/json',
       health: 'GET /health'
     },
     features: {
       videoSearch: 'Pesquisa avançada de vídeos no YouTube',
       commentExtraction: 'Extração de comentários com filtros',
-      videoInfo: 'Informações detalhadas de vídeos e canais'
+      videoInfo: 'Informações detalhadas de vídeos e canais',
+      transcription: 'Transcrição completa de vídeos com arquivos SRT temporários'
     }
   });
 });
@@ -264,6 +267,140 @@ app.use(routes);
  *         description: Erro interno do servidor
  */
 
+/**
+ * @swagger
+ * /api/transcription:
+ *   post:
+ *     summary: Obtém transcrição completa em texto de um vídeo do YouTube
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - videoUrl
+ *             properties:
+ *               videoUrl:
+ *                 type: string
+ *                 description: URL do vídeo do YouTube
+ *               languages:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: "Lista de idiomas preferidos (ex: [\"pt\", \"pt-BR\", \"en\"])"
+ *                 default: ["pt", "pt-BR", "en"]
+ *     responses:
+ *       200:
+ *         description: Transcrição em texto completo
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 videoId:
+ *                   type: string
+ *                 videoUrl:
+ *                   type: string
+ *                 language_used:
+ *                   type: string
+ *                 available_languages:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 segments_count:
+ *                   type: integer
+ *                 srt_file:
+ *                   type: string
+ *                 transcription:
+ *                   type: string
+ *                 total_words:
+ *                   type: integer
+ *                 total_characters:
+ *                   type: integer
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Erro na requisição
+ *       500:
+ *         description: Erro interno do servidor
+ */
+
+/**
+ * @swagger
+ * /api/transcription/json:
+ *   post:
+ *     summary: Obtém transcrição em formato JSON (SRT) de um vídeo do YouTube
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - videoUrl
+ *             properties:
+ *               videoUrl:
+ *                 type: string
+ *                 description: URL do vídeo do YouTube
+ *               languages:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 description: "Lista de idiomas preferidos (ex: [\"pt\", \"pt-BR\", \"en\"])"
+ *                 default: ["pt", "pt-BR", "en"]
+ *     responses:
+ *       200:
+ *         description: Transcrição em formato JSON com timestamps
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 videoId:
+ *                   type: string
+ *                 videoUrl:
+ *                   type: string
+ *                 language_used:
+ *                   type: string
+ *                 available_languages:
+ *                   type: array
+ *                   items:
+ *                     type: string
+ *                 segments_count:
+ *                   type: integer
+ *                 srt_file:
+ *                   type: string
+ *                 transcript:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       start:
+ *                         type: string
+ *                         description: Tempo inicial (HH:MM:SS)
+ *                       dur:
+ *                         type: string
+ *                         description: Duração em segundos
+ *                       text:
+ *                         type: string
+ *                         description: Texto do segmento
+ *                 total_words:
+ *                   type: integer
+ *                 total_characters:
+ *                   type: integer
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Erro na requisição
+ *       500:
+ *         description: Erro interno do servidor
+ */
+
 
 
 
@@ -290,5 +427,7 @@ app.listen(PORT, () => {
   console.log('  • POST /api/comments - Obter comentários de vídeos');
   console.log('  • POST /api/yt_last_video - Obter vídeo mais recente de um canal');
   console.log('  • POST /api/yt_video_info - Obter informações de vídeo específico');
+  console.log('  • POST /api/transcription - Obter transcrição em texto completo');
+  console.log('  • POST /api/transcription/json - Obter transcrição em formato JSON');
   console.log('  • GET /health - Verificar saúde da API');
 }); 

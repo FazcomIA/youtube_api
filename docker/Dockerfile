@@ -31,7 +31,7 @@ COPY --from=builder --chown=youtubeapi:nodejs /app/node_modules ./node_modules
 COPY --chown=youtubeapi:nodejs . .
 
 # Criar diretórios necessários
-RUN mkdir -p logs data/cookies && \
+RUN mkdir -p logs data/cookies data/transcripts && \
     chown -R youtubeapi:nodejs logs data
 
 # Definir variáveis de ambiente

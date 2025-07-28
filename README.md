@@ -49,14 +49,16 @@ npm start
 - Filtragem por quantidade e ordenação (recentes/populares)
 - Formato JSON personalizado com informações úteis
 
-### ✅ Extração de Transcrição (Novo Sistema!)
-- **🌟 Serviço externo confiável**: Integração com kome.ai
+### ✅ Extração de Transcrição (Sistema Atualizado!)
+- **🌟 Biblioteca própria**: Implementação Node.js da youtube_transcript_api
 - **🔧 Zero configuração**: Funciona imediatamente em qualquer servidor
 - **🌍 Compatibilidade total**: Sem problemas de cookies ou bloqueios de IP
 - **📝 Texto completo**: Transcrição completa do vídeo
-- **⏱️ Timestamps opcionais**: Suporte a timestamps simulados para compatibilidade
+- **⏱️ Timestamps precisos**: Suporte a timestamps reais do YouTube
 - **🎯 Detecção automática**: Idioma detectado automaticamente
-- **🛡️ Mais estável**: Sem dependência de sistemas internos do YouTube
+- **🛡️ Mais estável**: Sem dependência de sistemas externos
+- **📁 Arquivos SRT**: Geração automática de arquivos SRT temporários
+- **🗑️ Limpeza automática**: Arquivos deletados após 30 segundos
 
 ## 🛠️ Estrutura do Projeto
 
@@ -266,7 +268,7 @@ POST /api/yt_video_info
 
 **Retorna:** Título, autor, visualizações, likes, data de publicação, duração, comentários, tags, descrição, etc.
 
-### 📝 Transcrição (Sistema Atualizado!)
+### 📝 Transcrição em Texto Completo
 ```
 POST /api/transcription
 ```
@@ -275,16 +277,29 @@ POST /api/transcription
 ```json
 {
   "videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID",
-  "languages": ["pt", "pt-BR", "en"],
-  "includeTimestamps": false
+  "languages": ["pt", "pt-BR", "en"]
 }
 ```
 
-**🌟 Novidades da versão 1.2.0:**
-- **Serviço externo confiável**: Usa kome.ai para transcrições
-- **Compatibilidade garantida**: Funciona em qualquer servidor
-- **Zero configuração**: Não precisa de cookies ou configurações especiais
-- **Mais estável**: Sem dependência de sistemas internos do YouTube
+### 📝 Transcrição em Formato JSON (SRT)
+```
+POST /api/transcription/json
+```
+
+**Parâmetros:**
+```json
+{
+  "videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID",
+  "languages": ["pt", "pt-BR", "en"]
+}
+```
+
+**🌟 Novidades da versão 1.3.0:**
+- **Biblioteca própria**: Implementação Node.js da youtube_transcript_api
+- **Arquivos SRT**: Geração automática de arquivos SRT temporários
+- **Limpeza automática**: Arquivos deletados após 30 segundos
+- **Timestamps precisos**: Suporte a timestamps reais do YouTube
+- **Múltiplos idiomas**: Suporte a transcrições em vários idiomas
 
 ### 🏥 Health Check
 ```
@@ -316,16 +331,27 @@ const commentsResponse = await fetch('http://localhost:3000/api/comments', {
 });
 const comments = await commentsResponse.json();
 
-// Obter transcrição (novo sistema!)
+// Obter transcrição em texto completo
 const transcriptionResponse = await fetch('http://localhost:3000/api/transcription', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
     videoUrl: 'https://www.youtube.com/watch?v=VIDEO_ID',
-    includeTimestamps: false
+    languages: ['pt', 'pt-BR', 'en']
   })
 });
 const transcription = await transcriptionResponse.json();
+
+// Obter transcrição em formato JSON (SRT)
+const transcriptionJsonResponse = await fetch('http://localhost:3000/api/transcription/json', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    videoUrl: 'https://www.youtube.com/watch?v=VIDEO_ID',
+    languages: ['pt', 'pt-BR', 'en']
+  })
+});
+const transcriptionJson = await transcriptionJsonResponse.json();
 
 // Obter informações de vídeo específico
 const videoInfoResponse = await fetch('http://localhost:3000/api/yt_video_info', {
@@ -350,10 +376,15 @@ curl -X POST http://localhost:3000/api/comments \
   -H "Content-Type: application/json" \
   -d '{"videoIdOuUrl": "https://www.youtube.com/watch?v=VIDEO_ID", "limite": 5}'
 
-# Transcrição (novo sistema!)
+# Transcrição em texto completo
 curl -X POST http://localhost:3000/api/transcription \
   -H "Content-Type: application/json" \
-  -d '{"videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID", "includeTimestamps": false}'
+  -d '{"videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID", "languages": ["pt", "pt-BR", "en"]}'
+
+# Transcrição em formato JSON (SRT)
+curl -X POST http://localhost:3000/api/transcription/json \
+  -H "Content-Type: application/json" \
+  -d '{"videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID", "languages": ["pt", "pt-BR", "en"]}'
 
 # Informações de vídeo específico
 curl -X POST http://localhost:3000/api/yt_video_info \
@@ -373,19 +404,21 @@ curl -X GET http://localhost:3000/health
 
 ## 🛠️ Troubleshooting
 
-### ✅ Transcrições Agora Funcionam em Qualquer Servidor!
+### ✅ Transcrições com Biblioteca Própria!
 
-**🎉 Problema RESOLVIDO na v1.2.0:** 
-- **Antes**: Transcrições falhavam em servidores de cloud devido a bloqueios de IP
-- **Agora**: Sistema completamente reformulado usando serviço externo confiável
+**🎉 Sistema ATUALIZADO na v1.3.0:** 
+- **Antes**: Dependência de serviços externos para transcrições
+- **Agora**: Biblioteca própria implementada em Node.js baseada na youtube_transcript_api
 - **Resultado**: Funciona perfeitamente em desenvolvimento, produção e qualquer tipo de servidor
+- **Recursos**: Arquivos SRT temporários com limpeza automática após 30 segundos
 
 ### Problemas Comuns
 
 #### ✅ Transcrições
-- **Status**: ✅ FUNCIONANDO - Sistema atualizado na v1.2.0
-- **Solução**: Usa serviço externo (kome.ai) - compatível com qualquer servidor
+- **Status**: ✅ FUNCIONANDO - Sistema atualizado na v1.3.0
+- **Solução**: Usa biblioteca própria (youtube_transcript_node) - compatível com qualquer servidor
 - **Nenhuma configuração necessária** - funciona imediatamente
+- **Recursos**: Arquivos SRT temporários com limpeza automática
 
 #### Erro 500 em endpoints específicos
 **Diagnóstico:**
@@ -407,15 +440,17 @@ curl -X POST https://sua-api.com/api/transcription \
 
 ## 🔄 Changelog
 
-### 🌟 v1.2.0 - Sistema de Transcrição Revolucionado
-- **🎯 Migração para API externa**: Transcrições agora via kome.ai
-- **🌍 Compatibilidade universal**: Funciona em qualquer servidor
-- **🗑️ Remoção do sistema de cookies**: Não mais necessário
+### 🌟 v1.3.0 - Sistema de Transcrição com Biblioteca Própria
+- **🎯 Biblioteca própria**: Implementação Node.js da youtube_transcript_api
+- **📁 Arquivos SRT**: Geração automática de arquivos SRT temporários
+- **🗑️ Limpeza automática**: Arquivos deletados após 30 segundos
+- **⏱️ Timestamps precisos**: Suporte a timestamps reais do YouTube
+- **🌍 Múltiplos idiomas**: Suporte a transcrições em vários idiomas
 - **🚀 Zero configuração**: Funciona imediatamente após deploy
-- **📈 Maior estabilidade**: Sem dependência de sistemas internos do YouTube
-- **🔧 Simplificação do código**: Remoção de complexidades desnecessárias
+- **📈 Maior estabilidade**: Sem dependência de sistemas externos
 
 ### 📚 Versões Anteriores
+- **v1.2.0**: Sistema de transcrição via serviço externo (kome.ai)
 - **v1.1.0**: Sistema de cookies padrão automático
 - **v1.0.0**: Release inicial com sistema próprio de transcrições
 

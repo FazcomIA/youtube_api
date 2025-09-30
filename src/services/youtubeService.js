@@ -125,13 +125,22 @@ class YouTubeExtractor {
      */
     async getVideoDetails(videoUrl) {
         try {
+            // Extrair video ID da URL
+            const videoIdMatch = videoUrl.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\n?#]+)/);
+            if (!videoIdMatch) {
+                throw new Error('URL do vídeo inválida');
+            }
+            
+            const videoId = videoIdMatch[1];
+            
+            // Fazer requisição direta para a página do vídeo
             const response = await axios.get(videoUrl, { headers: this.headers });
             
             // Inicializar objeto com dados básicos
             let videoData = {
-                videoId: '',
+                videoId: videoId,
                 titulo: '',
-                title: '', // Adicionar title desde o início
+                title: '',
                 descricao: '',
                 autor: '',
                 channelId: '',
@@ -140,7 +149,8 @@ class YouTubeExtractor {
                 likes: 0,
                 comentarios: 0,
                 tags: [],
-                dataPublicacao: ''
+                dataPublicacao: '',
+                url: videoUrl
             };
             
             // Extrai dados do ytInitialPlayerResponse
@@ -151,9 +161,8 @@ class YouTubeExtractor {
                     const videoDetails = playerData.videoDetails;
                     
                     if (videoDetails) {
-                        videoData.videoId = videoDetails.videoId || '';
                         videoData.titulo = videoDetails.title || '';
-                        videoData.title = videoDetails.title || ''; // Garantir ambas as propriedades
+                        videoData.title = videoDetails.title || '';
                         videoData.descricao = videoDetails.shortDescription || '';
                         videoData.autor = videoDetails.author || '';
                         videoData.channelId = videoDetails.channelId || '';
@@ -165,7 +174,7 @@ class YouTubeExtractor {
                     console.log('Erro ao parsear ytInitialPlayerResponse:', e.message);
                 }
             }
-
+            
             // Extrai dados adicionais do ytInitialData
             const initialDataMatch = response.data.match(/ytInitialData\s*=\s*({.+?});/);
             if (initialDataMatch) {
@@ -180,39 +189,12 @@ class YouTubeExtractor {
                                 
                                 // Data de publicação
                                 const dateText = primaryInfo.dateText?.simpleText;
-                                if (dateText && !videoData.dataPublicacao) {
+                                if (dateText) {
                                     videoData.dataPublicacao = dateText;
-                                }
-
-                                // Likes - tentar diferentes padrões
-                                const videoActions = primaryInfo.videoActions?.menuRenderer?.topLevelButtons;
-                                if (videoActions && !videoData.likes) {
-                                    for (let action of videoActions) {
-                                        const toggleButton = action.toggleButtonRenderer;
-                                        if (toggleButton) {
-                                            // Verificar diferentes formatos de likes
-                                            const defaultText = toggleButton.defaultText;
-                                            const accessibility = toggleButton.defaultText?.accessibility?.accessibilityData?.label;
-                                            
-                                            if (accessibility && accessibility.toLowerCase().includes('like')) {
-                                                videoData.likes = this.parseNumber(accessibility);
-                                                break;
-                                            }
-                                            
-                                            // Tentar pegar likes do texto simples
-                                            if (defaultText?.simpleText) {
-                                                const likesText = defaultText.simpleText;
-                                                if (likesText && !isNaN(this.parseNumber(likesText))) {
-                                                    videoData.likes = this.parseNumber(likesText);
-                                                    break;
-                                                }
-                                            }
-                                        }
-                                    }
                                 }
                             }
                             
-                            // Tentar extrair informações do videoSecondaryInfoRenderer para mais dados
+                            // Informações secundárias
                             if (content.videoSecondaryInfoRenderer) {
                                 const secondaryInfo = content.videoSecondaryInfoRenderer;
                                 if (secondaryInfo.owner?.videoOwnerRenderer?.title?.runs?.[0]?.text && !videoData.autor) {
@@ -223,25 +205,6 @@ class YouTubeExtractor {
                     }
                 } catch (e) {
                     console.log('Erro ao parsear ytInitialData:', e.message);
-                }
-            }
-            
-            // Tentar extrair número de comentários com múltiplos padrões
-            if (!videoData.comentarios) {
-                const commentPatterns = [
-                    /"commentCount":"(\d+)"/,
-                    /"commentCount":\s*"(\d+)"/,
-                    /(\d+(?:\.\d+)?[KMB]?)\s*comment/i,
-                    /(\d+(?:\.\d+)?[KMB]?)\s*comentário/i,
-                    /"commentsEntryPointHeaderRenderer".*?"commentCount":"(\d+)"/s
-                ];
-                
-                for (const pattern of commentPatterns) {
-                    const match = response.data.match(pattern);
-                    if (match) {
-                        videoData.comentarios = this.parseNumber(match[1]);
-                        break;
-                    }
                 }
             }
             
@@ -261,15 +224,23 @@ class YouTubeExtractor {
             } else if (videoData.title && !videoData.titulo) {
                 videoData.titulo = videoData.title;
             }
+            
+            // Se ainda não temos título, definir um padrão
+            if (!videoData.titulo && !videoData.title) {
+                videoData.titulo = 'Título não disponível';
+                videoData.title = 'Título não disponível';
+            }
+            
+            // Adicionar nota sobre limitações do YouTube
+            videoData.nota = "Likes e comentários podem não estar disponíveis publicamente devido às políticas do YouTube";
 
             return videoData;
         } catch (error) {
             console.error('Erro ao extrair detalhes do vídeo:', error.message);
-            // Retornar um objeto básico mesmo em caso de erro
             return {
                 videoId: '',
-                titulo: '',
-                title: '',
+                titulo: 'Título não disponível',
+                title: 'Título não disponível',
                 descricao: '',
                 autor: '',
                 channelId: '',
@@ -279,10 +250,14 @@ class YouTubeExtractor {
                 comentarios: 0,
                 tags: [],
                 dataPublicacao: '',
-                erro: error.message
+                url: videoUrl,
+                erro: error.message,
+                nota: "Não foi possível extrair informações completas do vídeo"
             };
         }
     }
+
+
 
     /**
      * Obtém o vídeo mais recente de um canal

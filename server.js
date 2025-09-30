@@ -88,7 +88,7 @@ const swaggerOptions = {
       }
     ]
   },
-  apis: ['./server.js']
+  apis: ['./server.js', './src/routes/*.js', './src/controllers/*.js']
 };
 
 const swaggerDocs = swaggerJsDoc(swaggerOptions);
@@ -128,6 +128,9 @@ app.get('/', (req, res) => {
       ytVideoInfo: 'POST /api/yt_video_info',
       transcription: 'POST /api/transcription',
       transcriptionJson: 'POST /api/transcription/json',
+      channelVideos: 'POST /api/channel/videos',
+      channelUrls: 'POST /api/channel/urls',
+      
       health: 'GET /health'
     },
     features: {
@@ -141,6 +144,12 @@ app.get('/', (req, res) => {
 
 // Usar as rotas
 app.use(routes);
+
+// Adicionar rotas de canal diretamente para garantir que apareçam no Swagger
+const { getChannelVideos, getChannelVideoUrls } = require('./src/controllers/channelController');
+
+app.post('/api/channel/videos', getChannelVideos);
+app.post('/api/channel/urls', getChannelVideoUrls);
 
 /**
  * @swagger
@@ -407,6 +416,64 @@ app.use(routes);
 
 /**
  * @swagger
+ * /api/channel/videos:
+ *   post:
+ *     summary: Extrai todos os vídeos de um canal do YouTube
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - channelHandle
+ *             properties:
+ *               channelHandle:
+ *                 type: string
+ *                 description: Handle do canal
+ *               maxVideos:
+ *                 type: integer
+ *                 description: Número máximo de vídeos a extrair (padrão: 100)
+ *                 default: 100
+ *     responses:
+ *       200:
+ *         description: Lista completa de vídeos do canal
+ *       400:
+ *         description: Erro na requisição
+ *       500:
+ *         description: Erro interno do servidor
+ */
+
+/**
+ * @swagger
+ * /api/channel/urls:
+ *   post:
+ *     summary: Extrai apenas as URLs dos vídeos de um canal
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - channelHandle
+ *             properties:
+ *               channelHandle:
+ *                 type: string
+ *                 description: Handle do canal
+ *     responses:
+ *       200:
+ *         description: Lista de URLs dos vídeos
+ *       400:
+ *         description: Erro na requisição
+ *       500:
+ *         description: Erro interno do servidor
+ */
+
+
+
+/**
+ * @swagger
  * /health:
  *   get:
  *     summary: Verifica saúde da API
@@ -429,5 +496,8 @@ app.listen(PORT, () => {
   console.log('  • POST /api/yt_video_info - Obter informações de vídeo específico');
   console.log('  • POST /api/transcription - Obter transcrição em texto completo');
   console.log('  • POST /api/transcription/json - Obter transcrição em formato JSON');
+  console.log('  • POST /api/channel/videos - Extrair todos os vídeos de um canal');
+  console.log('  • POST /api/channel/urls - Extrair URLs dos vídeos de um canal');
+
   console.log('  • GET /health - Verificar saúde da API');
 }); 

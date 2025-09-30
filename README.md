@@ -44,6 +44,13 @@ npm start
 - Obter informações do vídeo mais recente de um canal por handle (@canal)
 - Dados completos: título, descrição, autor, visualizações, likes, duração, tags, etc.
 
+### ✅ Extração de Vídeos de Canal (NOVO!)
+- **📺 Extração completa**: Obter todos os vídeos de um canal por handle (@canal)
+- **🔗 URLs simples**: Extrair apenas as URLs dos vídeos de um canal
+- **📊 Informações básicas**: Título, URL, duração, visualizações e data de publicação
+- **🎯 Múltiplas opções**: 3 endpoints diferentes para diferentes necessidades
+- **⚡ Alta performance**: Usa scraping direto do YouTube sem dependências externas
+
 ### ✅ Extração de Comentários
 - Comentários de vídeos por URL ou ID
 - Filtragem por quantidade e ordenação (recentes/populares)
@@ -268,6 +275,46 @@ POST /api/yt_video_info
 
 **Retorna:** Título, autor, visualizações, likes, data de publicação, duração, comentários, tags, descrição, etc.
 
+### 📺 Extração de Vídeos de Canal (NOVO!)
+```
+POST /api/channel/videos
+```
+
+**Parâmetros:**
+```json
+{
+  "channelHandle": "@FazcomIA"
+}
+```
+
+**Retorna:** Lista completa de vídeos com todas as informações (título, URL, thumbnail, duração, views, etc.)
+
+```
+POST /api/channel/urls
+```
+
+**Parâmetros:**
+```json
+{
+  "channelHandle": "@FazcomIA"
+}
+```
+
+**Retorna:** Lista de URLs dos vídeos do canal
+
+```
+POST /api/channel/basic
+```
+
+**Parâmetros:**
+```json
+{
+  "channelHandle": "@FazcomIA"
+}
+```
+
+**Retorna:** Informações básicas dos vídeos (título, URL, duração, views, data de publicação)
+
 ### 📝 Transcrição em Texto Completo
 ```
 POST /api/transcription
@@ -362,7 +409,36 @@ const videoInfoResponse = await fetch('http://localhost:3000/api/yt_video_info',
   })
 });
 const videoInfo = await videoInfoResponse.json();
-```
+
+// Obter todos os vídeos de um canal
+const channelVideosResponse = await fetch('http://localhost:3000/api/channel/videos', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    channelHandle: '@FazcomIA'
+  })
+});
+const channelVideos = await channelVideosResponse.json();
+
+// Obter apenas URLs dos vídeos de um canal
+const channelUrlsResponse = await fetch('http://localhost:3000/api/channel/urls', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    channelHandle: '@FazcomIA'
+  })
+});
+const channelUrls = await channelUrlsResponse.json();
+
+// Obter informações básicas dos vídeos de um canal
+const channelBasicResponse = await fetch('http://localhost:3000/api/channel/basic', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    channelHandle: '@FazcomIA'
+  })
+});
+const channelBasic = await channelBasicResponse.json();
 
 ### cURL
 ```bash
@@ -390,6 +466,21 @@ curl -X POST http://localhost:3000/api/transcription/json \
 curl -X POST http://localhost:3000/api/yt_video_info \
   -H "Content-Type: application/json" \
   -d '{"videoUrl": "https://www.youtube.com/watch?v=VIDEO_ID"}'
+
+# Extrair todos os vídeos de um canal
+curl -X POST http://localhost:3000/api/channel/videos \
+  -H "Content-Type: application/json" \
+  -d '{"channelHandle": "@FazcomIA"}'
+
+# Extrair apenas URLs dos vídeos de um canal
+curl -X POST http://localhost:3000/api/channel/urls \
+  -H "Content-Type: application/json" \
+  -d '{"channelHandle": "@FazcomIA"}'
+
+# Extrair informações básicas dos vídeos de um canal
+curl -X POST http://localhost:3000/api/channel/basic \
+  -H "Content-Type: application/json" \
+  -d '{"channelHandle": "@FazcomIA"}'
 
 # Health check
 curl -X GET http://localhost:3000/health
@@ -439,6 +530,15 @@ curl -X POST https://sua-api.com/api/transcription \
 3. Teste endpoints diretamente via cURL primeiro
 
 ## 🔄 Changelog
+
+### 🌟 v1.4.0 - Extração de Vídeos de Canal (NOVO!)
+- **📺 Extração completa**: Obter todos os vídeos de um canal por handle (@canal)
+- **🔗 URLs simples**: Extrair apenas as URLs dos vídeos de um canal
+- **📊 Informações básicas**: Título, URL, duração, visualizações e data de publicação
+- **🎯 Múltiplas opções**: 3 endpoints diferentes para diferentes necessidades
+- **⚡ Alta performance**: Usa scraping direto do YouTube sem dependências externas
+- **🛡️ Estabilidade**: Funciona com qualquer canal público do YouTube
+- **📱 Compatibilidade**: Suporte a handles com ou sem @
 
 ### 🌟 v1.3.0 - Sistema de Transcrição com Biblioteca Própria
 - **🎯 Biblioteca própria**: Implementação Node.js da youtube_transcript_api

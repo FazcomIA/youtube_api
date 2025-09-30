@@ -1,7 +1,6 @@
 version: '3.8'
 
 services:
-  # Aplicação principal
   fci-api-youtube:
     build:
       context: ..
@@ -21,15 +20,11 @@ services:
       - YOUTUBE_MAX_RESULTS=${YOUTUBE_MAX_RESULTS:-50}
       - YOUTUBE_DEFAULT_LANGUAGE=${YOUTUBE_DEFAULT_LANGUAGE:-pt}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      - TZ=America/Bahia
     volumes:
-      # Montar logs em volume para persistência
       - fci-api-youtube-logs:/app/logs
-      # Montar cookies em volume para persistência
       - fci-api-youtube-cookies:/app/data/cookies
-      # Montar transcrições em volume para persistência
       - fci-api-youtube-transcripts:/app/data/transcripts
-      # Montar timezone local
-      - /etc/localtime:/etc/localtime:ro
     networks:
       - fci-api-youtube-network
     healthcheck:
@@ -47,7 +42,6 @@ services:
           cpus: '0.5'
           memory: 256M
 
-# Volumes persistentes
 volumes:
   fci-api-youtube-logs:
     driver: local
@@ -56,7 +50,6 @@ volumes:
   fci-api-youtube-transcripts:
     driver: local
 
-# Rede personalizada
 networks:
   fci-api-youtube-network:
-    driver: bridge 
+    driver: bridge

@@ -465,14 +465,32 @@ class YouTubeTranscriptApi {
             generated: {}
         };
         
+        if (!captionsJson || !captionsJson.captionTracks || !Array.isArray(captionsJson.captionTracks)) {
+            throw new Error('Estrutura de legendas inválida');
+        }
+        
         for (const caption of captionsJson.captionTracks) {
+            if (!caption.languageCode || !caption.baseUrl) {
+                continue; // Pula legendas inválidas
+            }
+            
             const isGenerated = caption.kind === 'asr';
             const transcriptDict = isGenerated ? transcripts.generated : transcripts.manual;
+            
+            // Extrai o nome do idioma de forma segura
+            let languageName = caption.languageCode;
+            if (caption.name) {
+                if (caption.name.runs && Array.isArray(caption.name.runs) && caption.name.runs.length > 0) {
+                    languageName = caption.name.runs[0].text || languageName;
+                } else if (caption.name.simpleText) {
+                    languageName = caption.name.simpleText;
+                }
+            }
             
             transcriptDict[caption.languageCode] = {
                 videoId: videoId,
                 url: caption.baseUrl.replace('&fmt=srv3', ''),
-                language: caption.name.runs[0].text,
+                language: languageName,
                 languageCode: caption.languageCode,
                 isGenerated: isGenerated
             };

@@ -414,10 +414,29 @@ class YouTubeTranscriptApi {
         // Verifica se o vídeo é reproduzível
         this._assertPlayability(innertubeData.playabilityStatus, videoId);
         
-        const captionsJson = innertubeData.captions?.playerCaptionsTracklistRenderer;
+        // Tenta diferentes caminhos para encontrar as legendas
+        let captionsJson = innertubeData.captions?.playerCaptionsTracklistRenderer;
         
-        if (!captionsJson || !captionsJson.captionTracks) {
+        // Se não encontrou, tenta caminho alternativo
+        if (!captionsJson) {
+            captionsJson = innertubeData.captions?.playerCaptionsRenderer?.captionTracks;
+        }
+        
+        // Verifica se há captionTracks
+        if (!captionsJson) {
+            console.error('❌ Estrutura de captions não encontrada:', JSON.stringify(innertubeData.captions, null, 2));
             throw new Error('Transcrições desabilitadas para este vídeo');
+        }
+        
+        // Se captionsJson não tem captionTracks diretamente, pode estar em outro lugar
+        if (!captionsJson.captionTracks) {
+            // Tenta acessar diretamente se for um array
+            if (Array.isArray(captionsJson)) {
+                captionsJson = { captionTracks: captionsJson };
+            } else {
+                console.error('❌ captionTracks não encontrado:', JSON.stringify(captionsJson, null, 2));
+                throw new Error('Transcrições desabilitadas para este vídeo');
+            }
         }
         
         return captionsJson;
